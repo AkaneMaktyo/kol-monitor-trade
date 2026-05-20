@@ -1,0 +1,58 @@
+.settings-page {
+    max-width: 860px;
+}
+
+.settings-hint,
+.empty-hint {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.config-section {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.config-section h2 {
+    margin: 0 0 12px;
+    font-size: 16px;
+}
+
+.config-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.config-table th,
+.config-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    font-size: 14px;
+}
+
+.config-table td:first-child {
+    width: 128px;
+    color: var(--muted);
+}
+
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: var(--accent);
+    background: rgba(79, 140, 255, 0.16);
+    font-size: 12px;
+}
+
+.code-block {
+    margin: 0;
+    padding: 16px;
+    overflow-x: auto;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font: 13px/1.5 "Consolas", "SF Mono", monospace;
+}

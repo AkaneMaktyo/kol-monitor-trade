@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}配置 - KOL Monitor Trade{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/static/css/settings.css">{% endblock %}
+
+{% block content %}
+<section class="panel settings-page">
+    <h1>当前配置</h1>
+    <p class="settings-hint">配置来自 <code>.env</code> 文件，修改后需要重启服务。</p>
+
+    <div class="config-section">
+        <h2>Telegram</h2>
+        <table class="config-table">
+            <tr><td>Bot Token</td><td>{{ "已配置" if telegram_token else "未配置" }}</td></tr>
+            <tr><td>监听频道</td><td><code>{{ telegram_channels | join(", ") or "未限制" }}</code></td></tr>
+        </table>
+    </div>
+
+    <div class="config-section">
+        <h2>Discord</h2>
+        <table class="config-table">
+            <tr><td>接入模式</td><td><code>{{ discord_mode }}</code></td></tr>
+            <tr><td>Bot Token</td><td>{{ "已配置" if discord_token else "未配置" }}</td></tr>
+            <tr><td>用户 Token</td><td>{{ "已配置" if discord_user_token else "未配置" }}</td></tr>
+            <tr><td>self 模式发送</td><td>{{ "已开启" if discord_self_allow_send else "未开启" }}</td></tr>
+            <tr><td>监听频道</td><td><code>{{ discord_channels | join(", ") or "未限制" }}</code></td></tr>
+        </table>
+    </div>
+
+    <div class="config-section">
+        <h2>存储</h2>
+        <table class="config-table">
+            <tr><td>MySQL</td><td><code>{{ mysql.host }}:{{ mysql.port }}</code></td></tr>
+            <tr><td>数据库</td><td><code>{{ mysql.database }}</code></td></tr>
+            <tr><td>用户</td><td><code>{{ mysql.user }}</code></td></tr>
+        </table>
+    </div>
+
+    <div class="config-section">
+        <h2>转发规则</h2>
+        {% if forward_rules %}
+        <table class="config-table">
+            <thead><tr><th>来源</th><th>来源频道</th><th>目标</th><th>目标频道</th></tr></thead>
+            <tbody>
+            {% for rule in forward_rules %}
+                <tr>
+                    <td><span class="badge">{{ rule.source }}</span></td>
+                    <td><code>{{ rule.source_channel }}</code></td>
+                    <td><span class="badge">{{ rule.target }}</span></td>
+                    <td><code>{{ rule.target_channel }}</code></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-hint">未配置转发规则。消息仍会进入本系统并显示在仪表盘。</p>
+        {% endif %}
+    </div>
+
+    <div class="config-section">
+        <h2>外部接入示例</h2>
+        <pre class="code-block">POST /api/ingest
+{
+  "platform": "system",
+  "content": "外部脚本推送的消息",
+  "source_channel": "custom-source",
+  "author": "bot"
+}</pre>
+    </div>
+</section>
+{% endblock %}

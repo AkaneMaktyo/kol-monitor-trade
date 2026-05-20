@@ -1,0 +1,108 @@
+:root {
+    --bg: #101217;
+    --panel: #191d26;
+    --panel-soft: #202633;
+    --border: #2d3442;
+    --text: #edf2f7;
+    --muted: #9aa4b2;
+    --accent: #4f8cff;
+    --green: #26c281;
+    --red: #f05d5e;
+    --yellow: #f5b84b;
+    --telegram: #2ea6ff;
+    --discord: #8b95ff;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.5;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button, select {
+    font: inherit;
+}
+
+.navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    padding: 0 24px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+}
+
+.nav-brand {
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.nav-link {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.nav-link:hover {
+    color: var(--text);
+}
+
+.nav-status {
+    min-width: 72px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+}
+
+.main-content {
+    width: min(1400px, 100%);
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.panel h1 {
+    margin: 0 0 16px;
+    font-size: 18px;
+}
+
+code {
+    color: var(--accent);
+}
+
+::-webkit-scrollbar {
+    width: 7px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}

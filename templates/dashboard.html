@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}仪表盘 - KOL Monitor Trade{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/static/css/dashboard.css">{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <section class="panel status-panel">
+        <h1>连接状态</h1>
+        <div class="status-cards">
+            <article class="status-card" id="status-telegram">
+                <span class="status-indicator disconnected"></span>
+                <div>
+                    <h2>Telegram</h2>
+                    <p class="status-text">未连接</p>
+                    <p class="status-detail">等待启动</p>
+                    <p class="status-heartbeat"></p>
+                </div>
+            </article>
+            <article class="status-card" id="status-discord">
+                <span class="status-indicator disconnected"></span>
+                <div>
+                    <h2>Discord</h2>
+                    <p class="status-text">未连接</p>
+                    <p class="status-detail">等待启动</p>
+                    <p class="status-heartbeat"></p>
+                </div>
+            </article>
+        </div>
+        <div class="stats-grid">
+            <div class="stat"><strong id="stat-uptime">0s</strong><span>运行时间</span></div>
+            <div class="stat"><strong id="stat-total">0</strong><span>消息总数</span></div>
+            <div class="stat"><strong id="stat-forwarded">0</strong><span>已转发</span></div>
+            <div class="stat"><strong id="stat-ws-clients">0</strong><span>在线面板</span></div>
+        </div>
+    </section>
+
+    <section class="panel log-panel">
+        <div class="log-header">
+            <h1>实时日志</h1>
+            <div class="log-controls">
+                <select id="platform-filter" aria-label="平台筛选">
+                    <option value="">全部平台</option>
+                    <option value="telegram">Telegram</option>
+                    <option value="discord">Discord</option>
+                    <option value="system">系统</option>
+                </select>
+                <select id="level-filter" aria-label="级别筛选">
+                    <option value="">全部级别</option>
+                    <option value="info">INFO</option>
+                    <option value="forward">FORWARD</option>
+                    <option value="warning">WARNING</option>
+                    <option value="error">ERROR</option>
+                </select>
+                <button id="btn-clear-logs" type="button">清空视图</button>
+                <span id="log-count">0 条</span>
+            </div>
+        </div>
+        <div class="log-container" id="log-container">
+            <div class="log-empty">等待消息进入系统...</div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/app-state.js"></script>
+<script src="/static/js/status-view.js"></script>
+<script src="/static/js/log-view.js"></script>
+<script src="/static/js/app.js"></script>
+{% endblock %}
