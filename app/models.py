@@ -10,6 +10,7 @@ from typing import Optional
 class Platform(str, Enum):
     TELEGRAM = "telegram"
     DISCORD = "discord"
+    WXPUSHER = "wxpusher"
     SYSTEM = "system"
 
 
@@ -92,6 +93,9 @@ class SystemState:
     discord: PlatformConnectionState = field(
         default_factory=lambda: PlatformConnectionState(platform=Platform.DISCORD)
     )
+    wxpusher: PlatformConnectionState = field(
+        default_factory=lambda: PlatformConnectionState(platform=Platform.WXPUSHER)
+    )
     log_entries: list[LogEntry] = field(default_factory=list)
     uptime_seconds: int = 0
     forwarded_count: int = 0
@@ -101,6 +105,7 @@ class SystemState:
         return {
             "telegram": self.telegram.to_dict(),
             "discord": self.discord.to_dict(),
+            "wxpusher": self.wxpusher.to_dict(),
             "log_entries": [entry.to_dict() for entry in self.log_entries[-50:]],
             "uptime_seconds": self.uptime_seconds,
             "forwarded_count": self.forwarded_count,

@@ -1,6 +1,7 @@
 fastapi>=0.110.0
 uvicorn>=0.29.0
-python-telegram-bot>=21.1
+telethon>=1.36.0
+python-socks[asyncio]>=2.4.0
 discord.py>=2.3.0
 selfcord.py @ https://github.com/dolfies/discord.py-self/archive/69819fc8bca2b81849cbfec45c00e2c2d0811231.zip
 jinja2>=3.1.3

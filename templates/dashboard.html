@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}仪表盘 - KOL Monitor Trade{% endblock %}
-{% block styles %}<link rel="stylesheet" href="/static/css/dashboard.css">{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/static/css/dashboard.css?v=20260521f">{% endblock %}
 
 {% block content %}
 <div class="dashboard-grid">
@@ -25,6 +25,15 @@
                     <p class="status-heartbeat"></p>
                 </div>
             </article>
+            <article class="status-card" id="status-wxpusher">
+                <span class="status-indicator disconnected"></span>
+                <div>
+                    <h2>WxPusher</h2>
+                    <p class="status-text">未连接</p>
+                    <p class="status-detail">等待启动</p>
+                    <p class="status-heartbeat"></p>
+                </div>
+            </article>
         </div>
         <div class="stats-grid">
             <div class="stat"><strong id="stat-uptime">0s</strong><span>运行时间</span></div>
@@ -42,14 +51,11 @@
                     <option value="">全部平台</option>
                     <option value="telegram">Telegram</option>
                     <option value="discord">Discord</option>
+                    <option value="wxpusher">WxPusher</option>
                     <option value="system">系统</option>
                 </select>
-                <select id="level-filter" aria-label="级别筛选">
-                    <option value="">全部级别</option>
-                    <option value="info">INFO</option>
-                    <option value="forward">FORWARD</option>
-                    <option value="warning">WARNING</option>
-                    <option value="error">ERROR</option>
+                <select id="author-filter" aria-label="作者筛选">
+                    <option value="">全部作者</option>
                 </select>
                 <button id="btn-clear-logs" type="button">清空视图</button>
                 <span id="log-count">0 条</span>
@@ -63,8 +69,9 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/app-state.js"></script>
-<script src="/static/js/status-view.js"></script>
-<script src="/static/js/log-view.js"></script>
+<script src="/static/js/app-state.js?v=20260521f"></script>
+<script src="/static/js/status-view.js?v=20260521f"></script>
+<script src="/static/js/log-detail.js?v=20260521f"></script>
+<script src="/static/js/log-view.js?v=20260521f"></script>
 <script src="/static/js/app.js"></script>
 {% endblock %}

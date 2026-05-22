@@ -5,6 +5,7 @@
     const refs = {
         telegram: $("#status-telegram"),
         discord: $("#status-discord"),
+        wxpusher: $("#status-wxpusher"),
         uptime: $("#stat-uptime"),
         total: $("#stat-total"),
         forwarded: $("#stat-forwarded"),
@@ -19,6 +20,7 @@
         refs.clients.textContent = data.ws_clients || 0;
         renderPlatform(refs.telegram, data.telegram);
         renderPlatform(refs.discord, data.discord);
+        renderPlatform(refs.wxpusher, data.wxpusher);
     }
 
     function renderPlatform(card, info) {

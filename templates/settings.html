@@ -10,7 +10,10 @@
     <div class="config-section">
         <h2>Telegram</h2>
         <table class="config-table">
-            <tr><td>Bot Token</td><td>{{ "已配置" if telegram_token else "未配置" }}</td></tr>
+            <tr><td>API ID</td><td>{{ "已配置" if telegram_api_id else "未配置" }}</td></tr>
+            <tr><td>API Hash</td><td>{{ "已配置" if telegram_api_hash else "未配置" }}</td></tr>
+            <tr><td>会话文件</td><td><code>{{ telegram_session_path }}</code></td></tr>
+            <tr><td>代理</td><td><code>{{ telegram_proxy_url or "未配置" }}</code></td></tr>
             <tr><td>监听频道</td><td><code>{{ telegram_channels | join(", ") or "未限制" }}</code></td></tr>
         </table>
     </div>
@@ -23,6 +26,19 @@
             <tr><td>用户 Token</td><td>{{ "已配置" if discord_user_token else "未配置" }}</td></tr>
             <tr><td>self 模式发送</td><td>{{ "已开启" if discord_self_allow_send else "未开启" }}</td></tr>
             <tr><td>监听频道</td><td><code>{{ discord_channels | join(", ") or "未限制" }}</code></td></tr>
+        </table>
+    </div>
+
+    <div class="config-section">
+        <h2>WxPusher</h2>
+        <table class="config-table">
+            <tr><td>Device Token</td><td>{{ "已配置" if wxpusher_device_token else "未配置" }}</td></tr>
+            <tr><td>Push Token</td><td>{{ "已配置" if wxpusher_push_token else "未配置" }}</td></tr>
+            <tr><td>Device UUID</td><td>{{ "已配置" if wxpusher_device_uuid else "未配置" }}</td></tr>
+            <tr><td>REST 轮询</td><td>{{ "已开启" if wxpusher_polling else "未开启" }}</td></tr>
+            <tr><td>WebSocket</td><td>{{ "已开启" if wxpusher_websocket else "未开启" }}</td></tr>
+            <tr><td>轮询间隔</td><td><code>{{ wxpusher_interval }} 秒</code></td></tr>
+            <tr><td>客户端</td><td><code>{{ wxpusher_platform }} / {{ wxpusher_version }}</code></td></tr>
         </table>
     </div>
 

@@ -36,6 +36,9 @@ class MessageForwarder:
     async def handle_discord_entry(self, entry: LogEntry) -> list[dict]:
         return await self._handle_entry(entry, "discord")
 
+    async def handle_wxpusher_entry(self, entry: LogEntry) -> list[dict]:
+        return await self._handle_entry(entry, "wxpusher")
+
     async def _handle_entry(self, entry: LogEntry, source: str) -> list[dict]:
         results = []
         for rule in self._matching_rules(entry, source):
@@ -83,7 +86,12 @@ class MessageForwarder:
 
     @staticmethod
     def _format(entry: LogEntry, rule: ForwardRule) -> str:
-        label = "Telegram" if entry.platform == Platform.TELEGRAM else "Discord"
+        labels = {
+            Platform.TELEGRAM: "Telegram",
+            Platform.DISCORD: "Discord",
+            Platform.WXPUSHER: "WxPusher",
+        }
+        label = labels.get(entry.platform, "系统")
         header = f"[来自 {label}]"
         if entry.author:
             header += f" {entry.author}"

@@ -3,7 +3,8 @@
 
     const state = {
         logs: [],
-        filters: { level: "", platform: "" },
+        expandedLogs: new Set(),
+        filters: { platform: "", author: "" },
         maxLogs: 300,
     };
 

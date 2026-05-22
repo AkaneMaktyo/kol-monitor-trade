@@ -1,9 +1,10 @@
 """REST API 路由。"""
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from app.models import LogEntry, LogLevel, Platform
+from app.services.wxpusher.detail import fetch_detail_text
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -42,6 +43,7 @@ async def get_stats(request: Request):
         "forwarded_count": state.forwarded_count,
         "telegram_status": state.telegram.status.value,
         "discord_status": state.discord.status.value,
+        "wxpusher_status": state.wxpusher.status.value,
         "total_logs": store.count(),
         "ws_clients": request.app.state.ws_manager.active_count,
     }
@@ -66,6 +68,15 @@ async def ingest_message(payload: IngestRequest, request: Request):
     entry = LogEntry.create(**payload.model_dump())
     saved = await service.submit(entry, allow_forward=False)
     return {"ok": True, "entry": saved.to_dict()}
+
+
+@router.get("/wxpusher/detail")
+async def get_wxpusher_detail(url: str, request: Request):
+    try:
+        content = await fetch_detail_text(url, request.app.state.config.wxpusher)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True, "content": content}
 
 
 @router.get("/health")

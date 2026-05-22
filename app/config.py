@@ -40,7 +40,12 @@ def _env_json(key: str) -> list:
 
 @dataclass
 class TelegramConfig:
-    bot_token: str = field(default_factory=lambda: _env("TELEGRAM_BOT_TOKEN"))
+    api_id: int = field(default_factory=lambda: _env_int("TELEGRAM_API_ID", 0))
+    api_hash: str = field(default_factory=lambda: _env("TELEGRAM_API_HASH"))
+    session_path: str = field(
+        default_factory=lambda: _env("TELEGRAM_SESSION_PATH", "data/telegram_user")
+    )
+    proxy_url: str = field(default_factory=lambda: _env("TELEGRAM_PROXY_URL"))
     monitor_channels: List[str] = field(
         default_factory=lambda: _env_list("TELEGRAM_MONITOR_CHANNELS")
     )
@@ -56,6 +61,24 @@ class DiscordConfig:
     )
     monitor_channels: List[str] = field(
         default_factory=lambda: _env_list("DISCORD_MONITOR_CHANNELS")
+    )
+
+
+@dataclass
+class WxPusherConfig:
+    device_token: str = field(default_factory=lambda: _env("WXPUSHER_DEVICE_TOKEN"))
+    push_token: str = field(default_factory=lambda: _env("WXPUSHER_PUSH_TOKEN"))
+    device_uuid: str = field(default_factory=lambda: _env("WXPUSHER_DEVICE_UUID"))
+    platform: str = field(default_factory=lambda: _env("WXPUSHER_PLATFORM", "Chrome-Windows"))
+    version: str = field(default_factory=lambda: _env("WXPUSHER_VERSION", "1.1.1"))
+    poll_interval_seconds: int = field(
+        default_factory=lambda: max(30, _env_int("WXPUSHER_POLL_INTERVAL_SECONDS", 60))
+    )
+    enable_polling: bool = field(
+        default_factory=lambda: _env_bool("WXPUSHER_ENABLE_POLLING")
+    )
+    enable_websocket: bool = field(
+        default_factory=lambda: _env_bool("WXPUSHER_ENABLE_WEBSOCKET")
     )
 
 
@@ -81,6 +104,7 @@ class ForwardRule:
 class AppConfig:
     telegram: TelegramConfig = field(default_factory=TelegramConfig)
     discord: DiscordConfig = field(default_factory=DiscordConfig)
+    wxpusher: WxPusherConfig = field(default_factory=WxPusherConfig)
     mysql: MySQLConfig = field(default_factory=MySQLConfig)
     forward_rules: List[ForwardRule] = field(default_factory=list)
     host: str = field(default_factory=lambda: _env("HOST", "0.0.0.0"))

@@ -50,6 +50,24 @@ class LogStore:
             with conn.cursor() as cursor:
                 cursor.execute(sql, self._serialize(entry))
 
+    def exists_message(self, platform: str, message_id: str) -> bool:
+        if not message_id:
+            return False
+        sql = "SELECT id FROM log_entries WHERE platform=%s AND message_id=%s LIMIT 1"
+        with self._connect() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, (platform, message_id))
+                return cursor.fetchone() is not None
+
+    def exists_content_link(self, platform: str, link: str) -> bool:
+        if not link:
+            return False
+        sql = "SELECT id FROM log_entries WHERE platform=%s AND content LIKE %s LIMIT 1"
+        with self._connect() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, (platform, f"%{link}%"))
+                return cursor.fetchone() is not None
+
     def list_logs(self, limit: int = 50, level: str = "", platform: str = "") -> list[dict]:
         limit = max(1, min(limit, 500))
         where, params = self._filters(level, platform)

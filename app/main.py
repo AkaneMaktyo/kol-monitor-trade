@@ -18,6 +18,7 @@ from app.models import LogEntry, LogLevel, Platform, SystemState
 from app.persistence.store import LogStore
 from app.routes import api, dashboard
 from app.services.messages import MessageService
+from app.services.wxpusher import WxPusherMonitor
 from app.telegram_monitor import TelegramMonitor
 from app.websocket_manager import ws_manager
 
@@ -37,6 +38,7 @@ config: AppConfig | None = None
 message_service: MessageService | None = None
 telegram_monitor: TelegramMonitor | None = None
 discord_monitor: DiscordMonitor | None = None
+wxpusher_monitor: WxPusherMonitor | None = None
 forwarder: MessageForwarder | None = None
 start_time = 0.0
 
@@ -56,7 +58,8 @@ async def _on_message(entry: LogEntry) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global config, message_service, telegram_monitor, discord_monitor, forwarder, start_time
+    global config, message_service, telegram_monitor, discord_monitor
+    global wxpusher_monitor, forwarder, start_time
 
     load_dotenv()
     config = load_config()
@@ -75,7 +78,9 @@ async def lifespan(app: FastAPI):
     forwarder = MessageForwarder(config)
     telegram_monitor = TelegramMonitor(config, system_state.telegram)
     discord_monitor = DiscordMonitor(config, system_state.discord)
+    wxpusher_monitor = WxPusherMonitor(config, system_state.wxpusher)
     app.state.discord_monitor = discord_monitor
+    app.state.wxpusher_monitor = wxpusher_monitor
     forwarder.set_telegram(telegram_monitor)
     forwarder.set_discord(discord_monitor)
     message_service.set_forwarder(forwarder)
@@ -85,12 +90,13 @@ async def lifespan(app: FastAPI):
         LogEntry.create(
             level=LogLevel.INFO,
             platform=Platform.SYSTEM,
-            content="系统启动，正在连接 Telegram 和 Discord",
+            content="系统启动，正在连接 Telegram、Discord 和 WxPusher",
         ),
         allow_forward=False,
     )
     await telegram_monitor.start(on_message=_on_message)
     await discord_monitor.start(on_message=_on_message)
+    await wxpusher_monitor.start(on_message=_on_message)
     heartbeat_task = asyncio.create_task(_heartbeat_loop())
     logger.info("server ready at http://%s:%s", config.host, config.port)
 
@@ -99,12 +105,13 @@ async def lifespan(app: FastAPI):
     heartbeat_task.cancel()
     await telegram_monitor.stop()
     await discord_monitor.stop()
+    await wxpusher_monitor.stop()
 
 
 app = FastAPI(
     title="KOL Monitor Trade",
-    description="实时接入 Telegram 和 Discord 消息，并提供仪表盘查看日志和连接状态。",
-    version="1.1.0",
+    description="实时接入 Telegram、Discord 和 WxPusher 消息，并提供仪表盘查看日志和连接状态。",
+    version="1.2.0",
     lifespan=lifespan,
 )
 
