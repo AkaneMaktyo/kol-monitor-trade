@@ -1,0 +1,33 @@
+.llm-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.llm-form label {
+    display: grid;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.llm-form input,
+.llm-form select {
+    width: 100%;
+    padding: 9px 10px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font: inherit;
+}
+
+.llm-form input[readonly] {
+    color: var(--muted);
+}
+
+@media (max-width: 720px) {
+    .llm-form {
+        grid-template-columns: 1fr;
+    }
+}

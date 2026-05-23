@@ -1,0 +1,43 @@
+"""Trading intent data objects."""
+
+from dataclasses import dataclass, field
+
+
+@dataclass
+class TradeIntent:
+    source_log_id: str
+    exchange: str
+    symbol: str
+    side: str
+    order_type: str
+    entry_price: float
+    quantity: float
+    stop_loss: float
+    take_profits: list[float] = field(default_factory=list)
+    dry_run: bool = True
+    status: str = "blocked"
+    reasons: list[str] = field(default_factory=list)
+    quote_risk_usdt: float = 0.0
+    notional_usdt: float = 0.0
+    account_equity_usdt: float = 0.0
+    risk_percent: float = 0.0
+
+    def to_dict(self) -> dict:
+        return {
+            "source_log_id": self.source_log_id,
+            "exchange": self.exchange,
+            "symbol": self.symbol,
+            "side": self.side,
+            "order_type": self.order_type,
+            "entry_price": self.entry_price,
+            "quantity": self.quantity,
+            "stop_loss": self.stop_loss,
+            "take_profits": self.take_profits,
+            "dry_run": self.dry_run,
+            "status": self.status,
+            "reasons": self.reasons,
+            "quote_risk_usdt": self.quote_risk_usdt,
+            "notional_usdt": self.notional_usdt,
+            "account_equity_usdt": self.account_equity_usdt,
+            "risk_percent": self.risk_percent,
+        }

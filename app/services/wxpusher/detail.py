@@ -49,6 +49,7 @@ class ArticleTextParser(HTMLParser):
         self._skip = False
         self._depth = 0
         self._parts: list[str] = []
+        self._link_stack: list[str] = []
 
     @classmethod
     def parse(cls, html: str) -> str:
@@ -69,8 +70,12 @@ class ArticleTextParser(HTMLParser):
             self._skip = True
         if tag in {"br", "p", "div", "li", "section"}:
             self._parts.append("\n")
+        if tag == "a":
+            self._link_stack.append(attrs_dict.get("href") or "")
         if tag == "img":
-            self._parts.append("\n[图片]\n")
+            image_url = self._image_url(attrs_dict)
+            image_text = f"[图片: {image_url}]" if image_url else "[图片]"
+            self._parts.append(f"\n{image_text}\n")
 
     def handle_endtag(self, tag: str) -> None:
         if not self._capture:
@@ -79,6 +84,8 @@ class ArticleTextParser(HTMLParser):
             self._skip = False
         if tag in {"p", "div", "li", "section", "main"}:
             self._parts.append("\n")
+        if tag == "a" and self._link_stack:
+            self._link_stack.pop()
         self._depth -= 1
         if self._depth <= 0:
             self._capture = False
@@ -86,6 +93,15 @@ class ArticleTextParser(HTMLParser):
     def handle_data(self, data: str) -> None:
         if self._capture and not self._skip:
             self._parts.append(data)
+
+    def _image_url(self, attrs: dict[str, str | None]) -> str:
+        candidates = [self._link_stack[-1] if self._link_stack else ""]
+        candidates.extend([attrs.get("src") or "", attrs.get("data-src") or ""])
+        for url in candidates:
+            url = unescape(url).strip()
+            if url.startswith(("http://", "https://")):
+                return url
+        return ""
 
 
 def _normalize(text: str) -> str:

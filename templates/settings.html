@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}配置 - KOL Monitor Trade{% endblock %}
-{% block styles %}<link rel="stylesheet" href="/static/css/settings.css">{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="/static/css/settings.css">
+<link rel="stylesheet" href="/static/css/settings-llm.css">
+{% endblock %}
 
 {% block content %}
 <section class="panel settings-page">
@@ -16,6 +19,21 @@
             <tr><td>代理</td><td><code>{{ telegram_proxy_url or "未配置" }}</code></td></tr>
             <tr><td>监听频道</td><td><code>{{ telegram_channels | join(", ") or "未限制" }}</code></td></tr>
         </table>
+        <div class="telegram-browser">
+            <div class="section-heading">
+                <h3>可见频道</h3>
+                <div class="telegram-actions">
+                    <label class="inline-check">
+                        <input id="telegram-include-users" type="checkbox">
+                        <span>包含私聊</span>
+                    </label>
+                    <button class="small-button" id="telegram-load" type="button">列出频道</button>
+                </div>
+            </div>
+            <p class="settings-hint">点击 ID 可复制；把要监听的 ID 填入 <code>TELEGRAM_MONITOR_CHANNELS</code> 后重启服务。</p>
+            <div id="telegram-status" class="settings-hint"></div>
+            <div id="telegram-channel-list" class="telegram-channel-list"></div>
+        </div>
     </div>
 
     <div class="config-section">
@@ -52,6 +70,75 @@
     </div>
 
     <div class="config-section">
+        <h2>模型解析</h2>
+        <form class="llm-form" id="llm-form">
+            <label>
+                <span>供应商</span>
+                <input id="llm-provider" value="deepseek" readonly>
+            </label>
+            <label>
+                <span>Base URL</span>
+                <input id="llm-base-url" value="https://api.deepseek.com" required>
+            </label>
+            <label>
+                <span>模型</span>
+                <select id="llm-model">
+                    <option value="deepseek-v4-flash">deepseek-v4-flash</option>
+                    <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+                </select>
+            </label>
+            <label>
+                <span>API Key</span>
+                <input id="llm-api-key" type="password" autocomplete="off" placeholder="留空则保留已保存 key">
+            </label>
+            <label class="inline-check">
+                <input id="llm-enabled" type="checkbox" checked>
+                <span>启用模型解析</span>
+            </label>
+            <div class="form-actions">
+                <button type="submit">保存模型配置</button>
+                <button id="llm-test" type="button">测试连接</button>
+                <span id="llm-status" class="settings-hint"></span>
+            </div>
+        </form>
+    </div>
+
+    <div class="config-section">
+        <div class="section-heading">
+            <h2>解析提示词</h2>
+            <button class="small-button" id="prompt-new" type="button">新建</button>
+        </div>
+        <form class="prompt-form" id="prompt-form">
+            <input id="prompt-id" type="hidden">
+            <label>
+                <span>名称</span>
+                <input id="prompt-name" name="name" maxlength="120" required>
+            </label>
+            <label>
+                <span>博主</span>
+                <input id="prompt-author" name="source_author" maxlength="255" placeholder="例如 舒琴操作日记VIP分享">
+            </label>
+            <label>
+                <span>频道</span>
+                <input id="prompt-channel" name="source_channel" maxlength="255" placeholder="例如 🟢｜舒琴行情分析">
+            </label>
+            <label class="wide-field">
+                <span>提示词</span>
+                <textarea id="prompt-text" name="prompt" rows="8" required></textarea>
+            </label>
+            <label class="inline-check">
+                <input id="prompt-enabled" name="enabled" type="checkbox" checked>
+                <span>启用</span>
+            </label>
+            <div class="form-actions">
+                <button type="submit">保存提示词</button>
+                <span id="prompt-status" class="settings-hint"></span>
+            </div>
+        </form>
+        <div id="prompt-list" class="prompt-list"></div>
+    </div>
+
+    <div class="config-section">
         <h2>转发规则</h2>
         {% if forward_rules %}
         <table class="config-table">
@@ -83,4 +170,10 @@
 }</pre>
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/settings-llm.js"></script>
+<script src="/static/js/settings-prompts.js"></script>
+<script src="/static/js/settings-telegram.js"></script>
 {% endblock %}

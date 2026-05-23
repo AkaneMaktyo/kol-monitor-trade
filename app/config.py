@@ -17,6 +17,13 @@ def _env_int(key: str, default: int) -> int:
         return default
 
 
+def _env_float(key: str, default: float) -> float:
+    try:
+        return float(_env(key, str(default)))
+    except ValueError:
+        return default
+
+
 def _env_bool(key: str, default: bool = False) -> bool:
     raw = _env(key, "true" if default else "false").lower()
     return raw in {"1", "true", "yes", "on"}
@@ -93,6 +100,30 @@ class MySQLConfig:
 
 
 @dataclass
+class TradingConfig:
+    enabled: bool = field(default_factory=lambda: _env_bool("TRADING_ENABLED"))
+    execution_mode: str = field(default_factory=lambda: _env("TRADING_EXECUTION_MODE", "dry_run"))
+    credential_database: str = field(
+        default_factory=lambda: _env("TRADING_CREDENTIAL_DATABASE", "market_opinion_tracker")
+    )
+    account_equity_usdt: float = field(
+        default_factory=lambda: _env_float("TRADING_ACCOUNT_EQUITY_USDT", 100.0)
+    )
+    max_stop_loss_percent: float = field(
+        default_factory=lambda: _env_float("TRADING_MAX_STOP_LOSS_PERCENT", 5.0)
+    )
+    max_order_risk_usdt: float = field(
+        default_factory=lambda: _env_float("TRADING_MAX_ORDER_RISK_USDT", 0.0)
+    )
+    max_signal_age_seconds: int = field(
+        default_factory=lambda: _env_int("TRADING_MAX_SIGNAL_AGE_SECONDS", 900)
+    )
+    margin_mode: str = field(default_factory=lambda: _env("TRADING_MARGIN_MODE", "crossed"))
+    product_type: str = field(default_factory=lambda: _env("TRADING_PRODUCT_TYPE", "USDT-FUTURES"))
+    margin_coin: str = field(default_factory=lambda: _env("TRADING_MARGIN_COIN", "USDT"))
+
+
+@dataclass
 class ForwardRule:
     source: str
     source_channel: str
@@ -106,6 +137,7 @@ class AppConfig:
     discord: DiscordConfig = field(default_factory=DiscordConfig)
     wxpusher: WxPusherConfig = field(default_factory=WxPusherConfig)
     mysql: MySQLConfig = field(default_factory=MySQLConfig)
+    trading: TradingConfig = field(default_factory=TradingConfig)
     forward_rules: List[ForwardRule] = field(default_factory=list)
     host: str = field(default_factory=lambda: _env("HOST", "0.0.0.0"))
     port: int = field(default_factory=lambda: _env_int("PORT", 8000))

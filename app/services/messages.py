@@ -18,9 +18,13 @@ class MessageService:
         self._store = store
         self._ws = ws_manager
         self._forwarder = None
+        self._signal_processor = None
 
     def set_forwarder(self, forwarder) -> None:
         self._forwarder = forwarder
+
+    def set_signal_processor(self, signal_processor) -> None:
+        self._signal_processor = signal_processor
 
     async def load_recent(self) -> None:
         self._state.log_entries = await asyncio.to_thread(self._store.hydrate_recent, 50)
@@ -32,6 +36,7 @@ class MessageService:
         self._remember(entry)
         await asyncio.to_thread(self._store.save, entry)
         await self._broadcast("log_entry", entry.to_dict())
+        await self._process_signal(entry)
 
         if allow_forward and self._forwarder and entry.platform in self._forwardable():
             results = await self._run_forwarder(entry)
@@ -45,6 +50,13 @@ class MessageService:
             "heartbeat",
             self._state.to_dict(ws_clients=self._ws.active_count),
         )
+
+    async def _process_signal(self, entry: LogEntry) -> None:
+        if not self._signal_processor:
+            return
+        result = await self._signal_processor.handle(entry)
+        if result:
+            await self._broadcast("signal_result", result)
 
     def _remember(self, entry: LogEntry) -> None:
         self._state.log_entries.append(entry)

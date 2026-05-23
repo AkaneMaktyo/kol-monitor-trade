@@ -1,6 +1,4 @@
-.settings-page {
-    max-width: 860px;
-}
+.settings-page { max-width: 860px; }
 
 .settings-hint,
 .empty-hint {
@@ -14,9 +12,147 @@
     border-top: 1px solid var(--border);
 }
 
-.config-section h2 {
-    margin: 0 0 12px;
-    font-size: 16px;
+.config-section h2 { margin: 0 0 12px; font-size: 16px; }
+.config-section h3 { margin: 0; font-size: 14px; }
+
+.section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.small-button,
+.form-actions button {
+    padding: 8px 12px;
+    color: var(--text);
+    background: var(--panel-soft);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.prompt-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.prompt-form label {
+    display: grid;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.prompt-form input,
+.prompt-form textarea {
+    width: 100%;
+    padding: 9px 10px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font: inherit;
+}
+
+.wide-field,
+.form-actions,
+.prompt-list {
+    grid-column: 1 / -1;
+}
+
+.inline-check {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+}
+
+.inline-check input { width: auto; }
+
+.form-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.prompt-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.prompt-item {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    background: var(--panel-soft);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.prompt-item header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.prompt-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.telegram-browser,
+.telegram-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.telegram-browser {
+    flex-direction: column;
+    margin-top: 16px;
+}
+
+.telegram-actions {
+    align-items: center;
+}
+
+.telegram-channel-list {
+    display: grid;
+    gap: 8px;
+    max-height: 420px;
+    overflow: auto;
+}
+
+.telegram-channel {
+    display: grid;
+    grid-template-columns: 148px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--panel-soft);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.telegram-channel code { cursor: pointer; }
+.telegram-channel-title { min-width: 0; }
+
+.telegram-channel-title strong,
+.telegram-channel-title span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.telegram-channel-title span { color: var(--muted); font-size: 12px; }
+
+.prompt-preview {
+    margin: 0;
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .config-table {
@@ -55,4 +191,8 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     font: 13px/1.5 "Consolas", "SF Mono", monospace;
+}
+
+@media (max-width: 720px) {
+    .telegram-channel { grid-template-columns: 1fr; }
 }

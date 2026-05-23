@@ -15,11 +15,16 @@ from app.config import AppConfig, load_config
 from app.discord_monitor import DiscordMonitor
 from app.forwarder import MessageForwarder
 from app.models import LogEntry, LogLevel, Platform, SystemState
+from app.persistence.llm_store import LlmConfigStore
+from app.persistence.prompt_store import PromptProfileStore
 from app.persistence.store import LogStore
-from app.routes import api, dashboard
+from app.persistence.trading_store import TradingStore
+from app.routes import api, dashboard, signals
+from app.services.signal_runtime import LiveSignalProcessor
 from app.services.messages import MessageService
 from app.services.wxpusher import WxPusherMonitor
 from app.telegram_monitor import TelegramMonitor
+from app.trading.execution import TradingExecutor
 from app.websocket_manager import ws_manager
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -65,14 +70,26 @@ async def lifespan(app: FastAPI):
     config = load_config()
     store = LogStore(config.mysql)
     store.initialize()
+    prompt_store = PromptProfileStore(config.mysql)
+    prompt_store.initialize()
+    llm_store = LlmConfigStore(config.mysql)
+    llm_store.initialize()
+    trading_store = TradingStore(config.mysql)
+    trading_store.initialize()
     message_service = MessageService(system_state, store, ws_manager)
     await message_service.load_recent()
+    trading_executor = TradingExecutor(config, trading_store)
+    signal_processor = LiveSignalProcessor(config, trading_executor)
 
     app.state.templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
     app.state.config = config
     app.state.system_state = system_state
     app.state.ws_manager = ws_manager
     app.state.log_store = store
+    app.state.prompt_store = prompt_store
+    app.state.llm_store = llm_store
+    app.state.trading_store = trading_store
+    app.state.trading_executor = trading_executor
     app.state.message_service = message_service
 
     forwarder = MessageForwarder(config)
@@ -84,6 +101,7 @@ async def lifespan(app: FastAPI):
     forwarder.set_telegram(telegram_monitor)
     forwarder.set_discord(discord_monitor)
     message_service.set_forwarder(forwarder)
+    message_service.set_signal_processor(signal_processor)
 
     start_time = time.time()
     await message_service.submit(
@@ -118,6 +136,7 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.include_router(dashboard.router)
 app.include_router(api.router)
+app.include_router(signals.router)
 
 
 @app.websocket("/ws")
