@@ -7,7 +7,7 @@ from pymysql.cursors import DictCursor
 from app.config import MySQLConfig
 from app.models import utc_now
 from app.signals.models import SignalCandidate
-from app.trading.models import TradeIntent
+from app.trading.models import TradeIntent, TradeUpdate
 
 
 class TradingStore:
@@ -20,6 +20,7 @@ class TradingStore:
                 cursor.execute(self._signal_table())
                 cursor.execute(self._intent_table())
                 cursor.execute(self._order_table())
+                cursor.execute(self._update_table())
 
     def save_candidate(self, candidate: SignalCandidate) -> str:
         signal_id = f"signal_{candidate.source_log_id}"[:80]
@@ -88,6 +89,48 @@ class TradingStore:
                     ))
         return order_id
 
+    def find_signal_by_source_url(self, source_url: str) -> str:
+        if not source_url:
+            return ""
+        sql = """
+            SELECT id FROM signal_candidates
+            WHERE parsed_json LIKE %s
+              AND category='new_signal'
+            ORDER BY created_at DESC
+            LIMIT 1
+        """
+        with self._connect() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, (f"%{source_url}%",))
+                row = cursor.fetchone()
+        return row["id"] if row else ""
+
+    def save_update(self, update: TradeUpdate) -> str:
+        update_id = f"update_{update.source_log_id}"[:80]
+        data = update.to_dict()
+        with self._connect() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO signal_updates(
+                      id, source_log_id, related_signal_id, reply_url, action,
+                      close_fraction, dry_run, status, reasons_json,
+                      request_json, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                      related_signal_id=VALUES(related_signal_id),
+                      action=VALUES(action), close_fraction=VALUES(close_fraction),
+                      dry_run=VALUES(dry_run), status=VALUES(status),
+                      reasons_json=VALUES(reasons_json),
+                      request_json=VALUES(request_json), updated_at=VALUES(updated_at)
+                    """, (
+                        update_id, update.source_log_id, update.related_signal_id,
+                        update.reply_url, update.action, update.close_fraction,
+                        int(update.dry_run), update.status,
+                        json.dumps(update.reasons),
+                        json.dumps(data, ensure_ascii=False), utc_now(), utc_now(),
+                    ))
+        return update_id
+
     def _connect(self):
         return pymysql.connect(
             host=self._config.host, port=self._config.port,
@@ -133,5 +176,19 @@ class TradingStore:
               response_json MEDIUMTEXT, error_message TEXT,
               created_at VARCHAR(32) NOT NULL, updated_at VARCHAR(32) NOT NULL,
               INDEX idx_order_intent(intent_id), INDEX idx_order_status(status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """
+
+    @staticmethod
+    def _update_table() -> str:
+        return """
+            CREATE TABLE IF NOT EXISTS signal_updates (
+              id VARCHAR(80) PRIMARY KEY, source_log_id VARCHAR(80) NOT NULL UNIQUE,
+              related_signal_id VARCHAR(80), reply_url TEXT, action VARCHAR(40) NOT NULL,
+              close_fraction DECIMAL(10, 4), dry_run TINYINT(1) NOT NULL,
+              status VARCHAR(32) NOT NULL, reasons_json TEXT, request_json MEDIUMTEXT,
+              created_at VARCHAR(32) NOT NULL, updated_at VARCHAR(32) NOT NULL,
+              INDEX idx_update_related(related_signal_id), INDEX idx_update_status(status),
+              INDEX idx_update_action(action)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """

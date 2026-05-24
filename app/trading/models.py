@@ -41,3 +41,31 @@ class TradeIntent:
             "account_equity_usdt": self.account_equity_usdt,
             "risk_percent": self.risk_percent,
         }
+
+
+@dataclass
+class TradeUpdate:
+    source_log_id: str
+    action: str
+    actions: list[str] = field(default_factory=list)
+    reply_url: str = ""
+    related_signal_id: str = ""
+    action_text: str = ""
+    close_fraction: float = 0.0
+    dry_run: bool = True
+    status: str = "needs_review"
+    reasons: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "source_log_id": self.source_log_id,
+            "action": self.action,
+            "actions": self.actions,
+            "reply_url": self.reply_url,
+            "related_signal_id": self.related_signal_id,
+            "action_text": self.action_text,
+            "close_fraction": self.close_fraction,
+            "dry_run": self.dry_run,
+            "status": self.status,
+            "reasons": self.reasons,
+        }

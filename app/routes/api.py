@@ -54,6 +54,14 @@ async def get_logs(request: Request, limit: int = 50, level: str = "", platform:
     return {"total": len(entries), "entries": entries}
 
 
+@router.get("/logs/{log_id}")
+async def get_log(log_id: str, request: Request):
+    entry = request.app.state.log_store.get_log(log_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="消息记录不存在")
+    return {"ok": True, "entry": entry}
+
+
 @router.get("/stats")
 async def get_stats(request: Request):
     state = request.app.state.system_state

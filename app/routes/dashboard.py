@@ -44,3 +44,11 @@ async def settings_page(request: Request):
             "mysql": config.mysql,
         },
     )
+
+
+@router.get("/account", response_class=HTMLResponse)
+async def account_page(request: Request):
+    return request.app.state.templates.TemplateResponse(
+        request,
+        "account.html",
+    )

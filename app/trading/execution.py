@@ -7,6 +7,7 @@ from app.exchanges.bitget import BitgetDemoExchange
 from app.persistence.trading_store import TradingStore
 from app.signals.models import SignalCandidate
 from app.trading.risk import build_dry_run_intent
+from app.trading.updates import build_update_intent
 
 
 class TradingExecutor:
@@ -23,6 +24,9 @@ class TradingExecutor:
         ignore_stale: bool = False,
     ) -> dict:
         signal_id = self._store.save_candidate(candidate) if persist else ""
+        update = self._handle_update(candidate, persist)
+        if update:
+            return {"signal_id": signal_id, **update, "intent": None, "order": None}
         intent = build_dry_run_intent(
             candidate,
             message_time,
@@ -44,6 +48,17 @@ class TradingExecutor:
             "intent_id": intent_id,
             "intent": intent.to_dict(),
             "order": order,
+        }
+
+    def _handle_update(self, candidate: SignalCandidate, persist: bool) -> dict | None:
+        if candidate.category != "position_update":
+            return None
+        related = self._store.find_signal_by_source_url(candidate.reply_url) if persist else ""
+        update = build_update_intent(candidate, related)
+        update_id = self._store.save_update(update) if persist and update else ""
+        return {
+            "update_id": update_id,
+            "update": update.to_dict() if update else None,
         }
 
     def _can_execute(self, intent) -> bool:

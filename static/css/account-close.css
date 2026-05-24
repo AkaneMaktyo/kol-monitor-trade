@@ -1,0 +1,97 @@
+.close-position-link {
+    padding: 2px 8px;
+    color: #ffdca8;
+    background: rgba(232, 178, 91, 0.13);
+    border: 1px solid rgba(232, 178, 91, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.trade-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 22;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background: rgba(0, 0, 0, 0.56);
+}
+
+.trade-modal[hidden] { display: none; }
+
+.trade-dialog {
+    width: min(460px, 100%);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.36);
+}
+
+.trade-dialog-head,
+.trade-dialog-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.trade-dialog-actions {
+    justify-content: flex-end;
+    border-top: 1px solid var(--border);
+    border-bottom: 0;
+}
+
+.trade-dialog-head h2 { margin: 0; font-size: 16px; }
+
+.trade-dialog button {
+    padding: 6px 12px;
+    color: var(--text);
+    background: var(--panel-soft);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#close-submit {
+    color: #20180c;
+    background: #e8b25b;
+    border-color: #e8b25b;
+}
+
+#close-submit:disabled { opacity: 0.6; cursor: wait; }
+
+.trade-dialog-body { display: grid; gap: 12px; padding: 14px; }
+
+.close-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    color: var(--muted);
+}
+
+.close-summary span {
+    padding: 4px 8px;
+    background: var(--panel-soft);
+    border-radius: 4px;
+}
+
+.close-mode { display: flex; gap: 14px; }
+
+.close-field { display: grid; gap: 6px; }
+.close-field span { color: var(--muted); font-size: 13px; }
+
+.close-field input {
+    width: 100%;
+    padding: 8px 10px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+}
+
+.close-preview,
+.close-status { margin: 0; color: var(--muted); }
+
+.close-status.error { color: var(--red); }

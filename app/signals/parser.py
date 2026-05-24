@@ -5,11 +5,13 @@ import re
 from app.signals.models import NormalizedMessage, SignalCandidate
 
 UPDATE_RULES = [
-    ("move_stop_to_breakeven", r"\b(set\s*b\.?e\.?|breakeven|break even)\b"),
-    ("take_partial_profit", r"\b(booked half|close first|partial|half profits?)\b"),
-    ("hold", r"\b(hold last|keep holding|let it run)\b"),
-    ("risk_modifier", r"\b(risk half|half of normal risk)\b"),
-    ("add_layer", r"\b(more buy|more sell|second entry|enter again)\b"),
+    ("close", r"\b(trade close|close all|close now|close full|full close|close at breakeven)\b|平仓|全平|清仓|离场|出场|无盈无亏|不赚不亏"),
+    ("take_partial_profit", r"\b(booked half|close first|partial|half profits?)\b|部分止盈|止盈一半|减仓|平一半|先出一半|锁定一半|已锁定一半"),
+    ("move_stop_to_breakeven", r"\b(set\s*b\.?e\.?|breakeven|break even|sl move entry|move sl to entry)\b|保本|平保|盈亏平衡|止损.*(入场|成本)|移动止损"),
+    ("take_profit_hit", r"\b(tp hit|target hit|target successfully hit|take profit hit)\b|止盈了|已止盈|成功止盈|达到止盈|目标达成"),
+    ("hold", r"\b(hold last|keep holding|let it run)\b|继续持有|持有剩余|留尾仓|拿住"),
+    ("risk_modifier", r"\b(risk half|half of normal risk)\b|半仓|小仓|减半风险|降低风险"),
+    ("add_layer", r"\b(more buy|more sell|second entry|enter again|can enter)\b|加仓|补仓|再进|重新进|可以入场"),
 ]
 
 SYMBOL_MAP = {
@@ -21,15 +23,20 @@ SYMBOL_MAP = {
 
 def parse_signal(message: NormalizedMessage) -> SignalCandidate:
     text = message.main_text
-    action = _update_action(text)
-    if action:
+    body = _action_body(text)
+    actions = _update_actions(body)
+    if actions:
         return SignalCandidate(
             source_log_id=message.log_id,
             category="position_update",
             raw_text=message.raw_text,
             evidence_text=_evidence(text),
             source_url=message.source_url,
-            action=action,
+            reply_url=message.reply_url,
+            action=actions[0],
+            actions=actions,
+            action_text=_evidence(body),
+            close_fraction=_close_fraction(actions),
             confidence=0.86,
             status="parsed",
         )
@@ -71,6 +78,7 @@ def _parse_english_signal(message: NormalizedMessage) -> SignalCandidate | None:
         raw_text=message.raw_text,
         evidence_text=_evidence(message.main_text),
         source_url=message.source_url,
+        reply_url=message.reply_url,
         symbol=symbol,
         bitget_symbol=bitget_symbol,
         side=side,
@@ -120,27 +128,33 @@ def _first_after(label: str, text: str) -> float | None:
     return values[0] if values else None
 
 
-def _update_action(text: str) -> str:
-    clean = _flat(text)
-    if "回复:" not in text and "Reply:" not in text and not _standalone_update(clean):
-        return ""
-    for action, pattern in UPDATE_RULES:
-        if re.search(pattern, clean, flags=re.I):
-            return action
-    return ""
+def _update_actions(text: str) -> list[str]:
+    return [action for action, pattern in UPDATE_RULES if re.search(pattern, text, flags=re.I)]
 
 
-def _standalone_update(text: str) -> bool:
-    return bool(re.search(r"\b(breakeven|booked half|hold last|risk half)\b", text, flags=re.I))
+def _action_body(text: str) -> str:
+    clean = re.sub(r"(回复|鍥炲|Reply)\s*:\s*\[[^\]]+\]\([^)]+\)", " ", text, flags=re.I)
+    clean = re.sub(r"(回复|鍥炲|Reply)\s*:\s*https?://\S+", " ", clean, flags=re.I)
+    clean = re.sub(r"\[[^\]]+\]\(https://[^)]+\)", " ", clean)
+    return _flat(clean)
+
+
+def _close_fraction(actions: list[str]) -> float:
+    if "take_partial_profit" in actions:
+        return 0.5
+    if actions and actions[0] in {"close", "take_profit_hit"}:
+        return 1.0
+    return 0.0
 
 
 def _has_reply_quote(text: str) -> bool:
-    return "回复:" in text or "Reply:" in text
+    return any(label in text for label in ("回复:", "鍥炲:", "Reply:"))
 
 
 def _media_only(text: str) -> bool:
     clean = _flat(text)
-    return clean in {"[Photo]", "Photo"} or "图片" in clean and not _looks_like_new_signal(clean)
+    has_image = "图片" in clean or "鍥剧墖" in clean
+    return clean in {"[Photo]", "Photo"} or has_image and not _looks_like_new_signal(clean)
 
 
 def _mentions_trade_intent(text: str) -> bool:
@@ -159,6 +173,7 @@ def _simple(
         raw_text=message.raw_text,
         evidence_text=_evidence(message.main_text),
         source_url=message.source_url,
+        reply_url=message.reply_url,
         confidence=confidence,
         missing_fields=missing or [],
         status="needs_review" if missing else "parsed",

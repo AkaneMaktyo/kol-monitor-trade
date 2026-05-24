@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}账户 - KOL Monitor Trade{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="/static/css/account.css?v=20260524c">
+<link rel="stylesheet" href="/static/css/account-close.css?v=20260524a">
+{% endblock %}
+
+{% block content %}
+<section class="account-page">
+    <div class="account-header">
+        <div>
+            <h1>Bitget 模拟账户</h1>
+            <p id="account-updated">等待刷新</p>
+        </div>
+        <button id="account-refresh" type="button">刷新</button>
+    </div>
+
+    <div class="metric-grid">
+        <article class="metric-card"><span>账户权益</span><strong id="metric-equity">--</strong></article>
+        <article class="metric-card"><span>可用余额</span><strong id="metric-available">--</strong></article>
+        <article class="metric-card"><span>未实现盈亏</span><strong id="metric-unrealized">--</strong></article>
+        <article class="metric-card"><span>已实现盈亏</span><strong id="metric-realized">--</strong></article>
+        <article class="metric-card"><span>保证金占用</span><strong id="metric-margin">--</strong></article>
+        <article class="metric-card"><span>风险率</span><strong id="metric-risk">--</strong></article>
+        <article class="metric-card"><span>持仓</span><strong id="metric-positions">--</strong></article>
+        <article class="metric-card"><span>挂单</span><strong id="metric-orders">--</strong></article>
+    </div>
+
+    <div class="account-grid">
+        <section class="panel account-chart-panel">
+            <div class="section-title">
+                <h2>权益曲线</h2>
+                <span id="curve-range">--</span>
+            </div>
+            <div id="equity-chart" class="equity-chart"></div>
+        </section>
+
+        <section class="panel">
+            <div class="section-title"><h2>当前持仓</h2></div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>合约</th><th>方向</th><th>数量</th><th>均价</th><th>标记价</th><th>盈亏</th><th>操作</th></tr></thead>
+                    <tbody id="position-rows"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-title"><h2>交易所挂单</h2></div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>合约</th><th>方向</th><th>价格</th><th>数量</th><th>状态</th><th>订单号</th></tr></thead>
+                    <tbody id="pending-order-rows"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel account-history-panel">
+            <div class="section-title">
+                <h2>历史仓位</h2>
+                <span>近 3 个月</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>合约</th><th>方向</th><th>开仓均价</th><th>平仓均价</th><th>开仓数量</th><th>平仓数量</th><th>已实现盈亏</th><th>净盈亏</th><th>更新时间</th></tr></thead>
+                    <tbody id="history-position-rows"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-title"><h2>本地开单记录</h2></div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>时间</th><th>合约</th><th>方向</th><th>价格</th><th>数量</th><th>状态</th></tr></thead>
+                    <tbody id="trade-order-rows"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-title"><h2>仓位更新</h2></div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>时间</th><th>动作</th><th>比例</th><th>状态</th><th>关联信号</th></tr></thead>
+                    <tbody id="signal-update-rows"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    <div id="account-error" class="account-error"></div>
+</section>
+
+<div id="message-modal" class="message-modal" hidden>
+    <section class="message-dialog" role="dialog" aria-modal="true" aria-labelledby="message-modal-title">
+        <div class="message-dialog-head">
+            <h2 id="message-modal-title">原消息记录</h2>
+            <button id="message-modal-close" type="button" aria-label="关闭">关闭</button>
+        </div>
+        <div id="message-modal-body" class="message-dialog-body"></div>
+    </section>
+</div>
+
+<div id="close-modal" class="trade-modal" hidden>
+    <section class="trade-dialog" role="dialog" aria-modal="true" aria-labelledby="close-modal-title">
+        <form id="close-form">
+            <div class="trade-dialog-head">
+                <h2 id="close-modal-title">平仓确认</h2>
+                <button id="close-modal-cancel" type="button" aria-label="关闭">关闭</button>
+            </div>
+            <div class="trade-dialog-body">
+                <div class="close-summary">
+                    <span id="close-symbol">--</span>
+                    <span id="close-side">--</span>
+                    <span>当前仓位 <strong id="close-total">--</strong></span>
+                </div>
+                <div class="close-mode">
+                    <label><input type="radio" name="close-mode" value="percent" checked> 按比例</label>
+                    <label><input type="radio" name="close-mode" value="quantity"> 按数量</label>
+                </div>
+                <label class="close-field" id="close-percent-field">
+                    <span>平仓比例</span>
+                    <input id="close-percent" type="number" min="1" max="100" step="1" value="50">
+                </label>
+                <label class="close-field" id="close-quantity-field" hidden>
+                    <span>平仓数量</span>
+                    <input id="close-quantity" type="number" min="0" step="0.01">
+                </label>
+                <p class="close-preview">预计平仓 <strong id="close-size">--</strong></p>
+                <p id="close-status" class="close-status"></p>
+            </div>
+            <div class="trade-dialog-actions">
+                <button id="close-submit" type="submit">确认平仓</button>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/account/labels.js?v=20260524a"></script>
+<script src="/static/js/account/record-modal.js?v=20260524b"></script>
+<script src="/static/js/account/close-modal.js?v=20260524a"></script>
+<script src="/static/js/account/overview.js?v=20260524f"></script>
+{% endblock %}

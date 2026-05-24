@@ -10,6 +10,7 @@ class NormalizedMessage:
     raw_text: str
     main_text: str
     source_url: str = ""
+    reply_url: str = ""
     detail_url: str = ""
     source_channel: str = ""
     author: str = ""
@@ -24,6 +25,7 @@ class SignalCandidate:
     raw_text: str
     evidence_text: str = ""
     source_url: str = ""
+    reply_url: str = ""
     symbol: str = ""
     bitget_symbol: str = ""
     side: str = ""
@@ -33,6 +35,9 @@ class SignalCandidate:
     confidence: float = 0.0
     missing_fields: list[str] = field(default_factory=list)
     action: str = ""
+    actions: list[str] = field(default_factory=list)
+    action_text: str = ""
+    close_fraction: float = 0.0
     status: str = "needs_review"
 
     def to_dict(self) -> dict:
@@ -40,6 +45,7 @@ class SignalCandidate:
             "source_log_id": self.source_log_id,
             "category": self.category,
             "source_url": self.source_url,
+            "reply_url": self.reply_url,
             "symbol": self.symbol,
             "bitget_symbol": self.bitget_symbol,
             "side": self.side,
@@ -49,6 +55,9 @@ class SignalCandidate:
             "confidence": self.confidence,
             "missing_fields": self.missing_fields,
             "action": self.action,
+            "actions": self.actions,
+            "action_text": self.action_text,
+            "close_fraction": self.close_fraction,
             "status": self.status,
             "evidence_text": self.evidence_text,
         }

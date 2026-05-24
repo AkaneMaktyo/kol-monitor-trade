@@ -16,10 +16,11 @@ from app.discord_monitor import DiscordMonitor
 from app.forwarder import MessageForwarder
 from app.models import LogEntry, LogLevel, Platform, SystemState
 from app.persistence.llm_store import LlmConfigStore
+from app.persistence.account_store import AccountStore
 from app.persistence.prompt_store import PromptProfileStore
 from app.persistence.store import LogStore
 from app.persistence.trading_store import TradingStore
-from app.routes import api, dashboard, signals
+from app.routes import account, api, dashboard, signals
 from app.services.signal_runtime import LiveSignalProcessor
 from app.services.messages import MessageService
 from app.services.wxpusher import WxPusherMonitor
@@ -76,6 +77,8 @@ async def lifespan(app: FastAPI):
     llm_store.initialize()
     trading_store = TradingStore(config.mysql)
     trading_store.initialize()
+    account_store = AccountStore(config.mysql)
+    account_store.initialize()
     message_service = MessageService(system_state, store, ws_manager)
     await message_service.load_recent()
     trading_executor = TradingExecutor(config, trading_store)
@@ -89,6 +92,7 @@ async def lifespan(app: FastAPI):
     app.state.prompt_store = prompt_store
     app.state.llm_store = llm_store
     app.state.trading_store = trading_store
+    app.state.account_store = account_store
     app.state.trading_executor = trading_executor
     app.state.message_service = message_service
 
@@ -137,6 +141,7 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.include_router(dashboard.router)
 app.include_router(api.router)
 app.include_router(signals.router)
+app.include_router(account.router)
 
 
 @app.websocket("/ws")

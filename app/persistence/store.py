@@ -68,6 +68,14 @@ class LogStore:
                 cursor.execute(sql, (platform, f"%{link}%"))
                 return cursor.fetchone() is not None
 
+    def get_log(self, log_id: str) -> dict | None:
+        sql = "SELECT * FROM log_entries WHERE id=%s LIMIT 1"
+        with self._connect() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, (log_id,))
+                row = cursor.fetchone()
+        return self._row_dict(row) if row else None
+
     def list_logs(self, limit: int = 50, level: str = "", platform: str = "") -> list[dict]:
         limit = max(1, min(limit, 500))
         where, params = self._filters(level, platform)

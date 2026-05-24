@@ -106,6 +106,7 @@ class TradingConfig:
     credential_database: str = field(
         default_factory=lambda: _env("TRADING_CREDENTIAL_DATABASE", "market_opinion_tracker")
     )
+    proxy_url: str = field(default_factory=lambda: _env("TRADING_PROXY_URL"))
     account_equity_usdt: float = field(
         default_factory=lambda: _env_float("TRADING_ACCOUNT_EQUITY_USDT", 100.0)
     )

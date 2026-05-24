@@ -8,11 +8,17 @@ from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 from app.config import WxPusherConfig
+from app.services.wxpusher.html import ArticleHtmlParser
 
 
 async def fetch_detail_text(url: str, config: WxPusherConfig) -> str:
     _validate_url(url)
-    return await asyncio.to_thread(_fetch, url, config)
+    return await asyncio.to_thread(_fetch_text, url, config)
+
+
+async def fetch_detail_html(url: str, config: WxPusherConfig) -> str:
+    _validate_url(url)
+    return await asyncio.to_thread(_fetch_html, url, config)
 
 
 def _validate_url(url: str) -> None:
@@ -23,14 +29,24 @@ def _validate_url(url: str) -> None:
         raise ValueError("详情链接格式不正确")
 
 
-def _fetch(url: str, config: WxPusherConfig) -> str:
-    request = Request(url, headers=_headers(config))
-    with urlopen(request, timeout=20) as response:
-        html = response.read().decode("utf-8", errors="replace")
-    text = ArticleTextParser.parse(html)
+def _fetch_text(url: str, config: WxPusherConfig) -> str:
+    text = ArticleTextParser.parse(_read_html(url, config))
     if not text:
         raise ValueError("详情页没有可提取正文")
     return text[:8000]
+
+
+def _fetch_html(url: str, config: WxPusherConfig) -> str:
+    html = ArticleHtmlParser.parse(_read_html(url, config))
+    if not html:
+        raise ValueError("详情页没有可提取正文")
+    return html[:20000]
+
+
+def _read_html(url: str, config: WxPusherConfig) -> str:
+    request = Request(url, headers=_headers(config))
+    with urlopen(request, timeout=20) as response:
+        return response.read().decode("utf-8", errors="replace")
 
 
 def _headers(config: WxPusherConfig) -> dict:

@@ -16,12 +16,18 @@ class HistoricalSignalChain:
         self._wxpusher = wxpusher
         self._executor = executor
 
-    async def replay_gold_empire(self, limit: int = 120, persist: bool = False) -> dict:
+    async def replay_gold_empire(
+        self,
+        limit: int = 120,
+        persist: bool = False,
+        ignore_stale: bool = False,
+    ) -> dict:
         rows = await asyncio.to_thread(self._store.list_logs, min(limit, 500), "", "wxpusher")
         rows = [row for row in reversed(rows) if is_gold_empire(row)]
         seen = set()
         candidates = []
         intents = []
+        updates = []
         details_fetched = 0
         detail_failures = 0
         for row in rows:
@@ -37,17 +43,20 @@ class HistoricalSignalChain:
             message = normalize_entry(row, detail)
             candidate = parse_signal(message)
             candidates.append(candidate)
-            execution = self._execution(candidate, row, persist)
+            execution = self._execution(candidate, row, persist, ignore_stale)
             if execution.get("intent"):
                 intents.append(execution["intent"])
-        return self._result(candidates, intents, details_fetched, detail_failures)
+            if execution.get("update"):
+                updates.append(execution["update"])
+        return self._result(candidates, intents, updates, details_fetched, detail_failures)
 
-    def _execution(self, candidate, row: dict, persist: bool) -> dict:
+    def _execution(self, candidate, row: dict, persist: bool, ignore_stale: bool) -> dict:
         if self._executor:
             return self._executor.handle_candidate(
                 candidate,
                 row.get("timestamp", ""),
                 persist=persist,
+                ignore_stale=ignore_stale,
             )
         return {"intent": None}
 
@@ -70,10 +79,12 @@ class HistoricalSignalChain:
         return row.get("id", "")
 
     @staticmethod
-    def _result(candidates, intents, details_fetched: int, detail_failures: int) -> dict:
+    def _result(candidates, intents, updates, details_fetched: int, detail_failures: int) -> dict:
         categories = Counter(item.category for item in candidates)
         statuses = Counter(item.status for item in candidates)
         intent_statuses = Counter(item.get("status", "") for item in intents)
+        update_statuses = Counter(item.get("status", "") for item in updates)
+        update_actions = Counter(item.get("action", "") for item in updates)
         return {
             "summary": {
                 "unique_messages": len(candidates),
@@ -83,7 +94,11 @@ class HistoricalSignalChain:
                 "candidate_statuses": dict(statuses),
                 "trade_intents": len(intents),
                 "intent_statuses": dict(intent_statuses),
+                "signal_updates": len(updates),
+                "update_statuses": dict(update_statuses),
+                "update_actions": dict(update_actions),
             },
             "candidates": [item.to_dict() for item in candidates],
             "trade_intents": intents,
+            "signal_updates": updates,
         }
