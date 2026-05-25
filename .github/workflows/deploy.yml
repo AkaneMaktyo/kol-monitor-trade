@@ -1,0 +1,47 @@
+name: Deploy to cloud
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pack release
+        run: |
+          tar \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.venv' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='.env' \
+            --exclude='data' \
+            --exclude='logs' \
+            -czf app.tar.gz .
+
+      - name: Upload and restart
+        env:
+          SSH_HOST: ${{ secrets.KMT_SSH_HOST }}
+          SSH_PORT: ${{ secrets.KMT_SSH_PORT }}
+          SSH_USER: ${{ secrets.KMT_SSH_USER }}
+          SSH_PASSWORD: ${{ secrets.KMT_SSH_PASSWORD }}
+        run: |
+          if [ -z "$SSH_HOST" ] || [ -z "$SSH_PORT" ] || [ -z "$SSH_USER" ] || [ -z "$SSH_PASSWORD" ]; then
+            echo "Deployment secrets are not configured; skipping deploy."
+            exit 0
+          fi
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "mkdir -p /root/kol-monitor-deploy"
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no -P "$SSH_PORT" \
+            app.tar.gz deploy/apply-release.sh "$SSH_USER@$SSH_HOST:/root/kol-monitor-deploy/"
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "bash /root/kol-monitor-deploy/apply-release.sh /root/kol-monitor-deploy/app.tar.gz $GITHUB_SHA"
