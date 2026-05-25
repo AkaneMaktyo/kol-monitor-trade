@@ -125,6 +125,27 @@ class TradingConfig:
 
 
 @dataclass
+class PositionNotifyConfig:
+    enabled: bool = field(default_factory=lambda: _env_bool("POSITION_NOTIFY_ENABLED"))
+    channel: str = field(default_factory=lambda: _env("POSITION_NOTIFY_CHANNEL", "wxpusher"))
+    interval_seconds: int = field(
+        default_factory=lambda: max(15, _env_int("POSITION_NOTIFY_INTERVAL_SECONDS", 30))
+    )
+    wxpusher_spt: str = field(
+        default_factory=lambda: _env("POSITION_NOTIFY_WXPUSHER_SPT")
+    )
+    wxpusher_app_token: str = field(
+        default_factory=lambda: _env("POSITION_NOTIFY_WXPUSHER_APP_TOKEN")
+    )
+    wxpusher_uids: List[str] = field(
+        default_factory=lambda: _env_list("POSITION_NOTIFY_WXPUSHER_UIDS")
+    )
+    wxpusher_topic_ids: List[str] = field(
+        default_factory=lambda: _env_list("POSITION_NOTIFY_WXPUSHER_TOPIC_IDS")
+    )
+
+
+@dataclass
 class ForwardRule:
     source: str
     source_channel: str
@@ -139,6 +160,7 @@ class AppConfig:
     wxpusher: WxPusherConfig = field(default_factory=WxPusherConfig)
     mysql: MySQLConfig = field(default_factory=MySQLConfig)
     trading: TradingConfig = field(default_factory=TradingConfig)
+    position_notify: PositionNotifyConfig = field(default_factory=PositionNotifyConfig)
     forward_rules: List[ForwardRule] = field(default_factory=list)
     host: str = field(default_factory=lambda: _env("HOST", "0.0.0.0"))
     port: int = field(default_factory=lambda: _env_int("PORT", 8000))

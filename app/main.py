@@ -25,6 +25,7 @@ from app.services.signal_runtime import LiveSignalProcessor
 from app.services.messages import MessageService
 from app.services.wxpusher import WxPusherMonitor
 from app.telegram_monitor import TelegramMonitor
+from app.notifications import PositionWatcher
 from app.trading.execution import TradingExecutor
 from app.websocket_manager import ws_manager
 
@@ -106,6 +107,7 @@ async def lifespan(app: FastAPI):
     forwarder.set_discord(discord_monitor)
     message_service.set_forwarder(forwarder)
     message_service.set_signal_processor(signal_processor)
+    position_watcher = PositionWatcher(config)
 
     start_time = time.time()
     await message_service.submit(
@@ -120,11 +122,13 @@ async def lifespan(app: FastAPI):
     await discord_monitor.start(on_message=_on_message)
     await wxpusher_monitor.start(on_message=_on_message)
     heartbeat_task = asyncio.create_task(_heartbeat_loop())
+    position_task = asyncio.create_task(position_watcher.run())
     logger.info("server ready at http://%s:%s", config.host, config.port)
 
     yield
 
     heartbeat_task.cancel()
+    position_task.cancel()
     await telegram_monitor.stop()
     await discord_monitor.stop()
     await wxpusher_monitor.stop()
