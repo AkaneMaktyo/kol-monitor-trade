@@ -15,6 +15,7 @@ jobs:
 
       - name: Pack release
         run: |
+          RELEASE_ARCHIVE="$RUNNER_TEMP/app.tar.gz"
           tar \
             --exclude='.git' \
             --exclude='.github' \
@@ -24,7 +25,8 @@ jobs:
             --exclude='.env' \
             --exclude='data' \
             --exclude='logs' \
-            -czf app.tar.gz .
+            -czf "$RELEASE_ARCHIVE" .
+          cp "$RELEASE_ARCHIVE" app.tar.gz
 
       - name: Upload and restart
         env:
