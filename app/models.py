@@ -2,9 +2,13 @@
 
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 from typing import Optional
+from zoneinfo import ZoneInfo
+
+
+APP_TIMEZONE = ZoneInfo("Asia/Shanghai")
 
 
 class Platform(str, Enum):
@@ -28,8 +32,12 @@ class LogLevel(str, Enum):
     FORWARD = "forward"
 
 
+def app_now() -> str:
+    return datetime.now(APP_TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
+
+
 def utc_now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    return app_now()
 
 
 @dataclass
@@ -49,7 +57,7 @@ class LogEntry:
     @classmethod
     def create(cls, level: LogLevel, content: str, **kwargs) -> "LogEntry":
         value = f"{time.time_ns()}_{hash(content) & 0xFFFF:04x}"
-        return cls(id=value, timestamp=utc_now(), level=level, content=content, **kwargs)
+        return cls(id=value, timestamp=app_now(), level=level, content=content, **kwargs)
 
     def to_dict(self) -> dict:
         return {

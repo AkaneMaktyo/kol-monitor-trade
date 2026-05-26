@@ -9,7 +9,7 @@ from typing import Awaitable, Callable, Optional
 import websockets
 
 from app.config import AppConfig
-from app.models import ConnectionStatus, LogEntry, PlatformConnectionState, utc_now
+from app.models import ConnectionStatus, LogEntry, PlatformConnectionState, app_now
 from app.services.wxpusher.client import (
     WxPusherApiError,
     WxPusherClient,
@@ -122,7 +122,7 @@ class WxPusherMonitor:
         payload = json.loads(raw)
         msg_type = payload.get("msgType")
         if msg_type == 201:
-            self._state.last_heartbeat = utc_now()
+            self._state.last_heartbeat = app_now()
             return
         if msg_type == 202:
             self._handle_init_payload(payload)
@@ -136,10 +136,10 @@ class WxPusherMonitor:
         token = payload.get("pushToken")
         if token and token != self._config.push_token:
             self._state.error_message = "WxPusher 返回了新的 pushToken，请更新 .env"
-        self._state.last_heartbeat = utc_now()
+        self._state.last_heartbeat = app_now()
 
     async def _emit(self, entry: LogEntry) -> None:
-        self._state.last_heartbeat = utc_now()
+        self._state.last_heartbeat = app_now()
         if self._on_message:
             await self._on_message(entry)
 
@@ -163,7 +163,7 @@ class WxPusherMonitor:
     def _mark_connected(self) -> None:
         self._state.status = ConnectionStatus.CONNECTED
         self._state.error_message = None
-        self._state.last_heartbeat = utc_now()
+        self._state.last_heartbeat = app_now()
 
     def _mark_reconnecting(self, message: str) -> None:
         self._state.status = ConnectionStatus.RECONNECTING

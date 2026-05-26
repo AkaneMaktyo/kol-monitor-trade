@@ -8,7 +8,7 @@ from typing import Any, Callable, Optional
 import discord
 
 from app.config import AppConfig
-from app.models import ConnectionStatus, LogEntry, LogLevel, Platform, PlatformConnectionState, utc_now
+from app.models import ConnectionStatus, LogEntry, LogLevel, Platform, PlatformConnectionState, app_now
 
 logger = logging.getLogger(__name__)
 VALID_MODES = {"bot", "self"}
@@ -77,7 +77,7 @@ class DiscordMonitor:
         @self._client.event
         async def on_ready():
             self._state.status = ConnectionStatus.CONNECTED
-            self._state.last_heartbeat = utc_now()
+            self._state.last_heartbeat = app_now()
             self._state.error_message = None
             self._ready.set()
             logger.info(
@@ -103,7 +103,7 @@ class DiscordMonitor:
             self._mark_error(f"事件错误: {event}")
 
     async def _emit_message(self, message: Any) -> None:
-        self._state.last_heartbeat = utc_now()
+        self._state.last_heartbeat = app_now()
         author = message.author.name
         if getattr(message.author, "discriminator", "0") != "0":
             author = f"{message.author.name}#{message.author.discriminator}"

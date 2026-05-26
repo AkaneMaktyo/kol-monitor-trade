@@ -6,7 +6,7 @@ import pymysql
 from pymysql.cursors import DictCursor
 
 from app.config import MySQLConfig
-from app.models import utc_now
+from app.models import app_now
 
 
 class AccountStore:
@@ -19,7 +19,7 @@ class AccountStore:
                 cursor.execute(self._snapshot_table())
 
     def save_snapshot(self, account: dict) -> str:
-        snapshot_id = f"acct_{utc_now().replace(' ', '_').replace(':', '')}"
+        snapshot_id = f"acct_{app_now().replace(' ', '_').replace(':', '')}"
         data = _numbers(account, "accountEquity", "available", "unrealizedPL", "locked")
         with self._connect() as conn:
             with conn.cursor() as cursor:
@@ -32,7 +32,7 @@ class AccountStore:
                     """, (
                         snapshot_id, "bitget", "demo", account.get("marginCoin", "USDT"),
                         data["accountEquity"], data["available"], data["unrealizedPL"],
-                        data["locked"], json.dumps(account, ensure_ascii=False), utc_now(),
+                        data["locked"], json.dumps(account, ensure_ascii=False), app_now(),
                     ))
         return snapshot_id
 

@@ -7,7 +7,7 @@ import pymysql
 from pymysql.cursors import DictCursor
 
 from app.config import MySQLConfig
-from app.models import utc_now
+from app.models import app_now
 
 
 class PromptProfileStore:
@@ -39,7 +39,7 @@ class PromptProfileStore:
         return self._row_dict(row) if row else None
 
     def save(self, data: dict) -> dict:
-        now = utc_now()
+        now = app_now()
         profile_id = data.get("id") or f"prompt_{uuid.uuid4().hex}"
         existing = self.get(profile_id)
         payload = {

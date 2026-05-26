@@ -5,7 +5,7 @@ import pymysql
 from pymysql.cursors import DictCursor
 
 from app.config import MySQLConfig
-from app.models import utc_now
+from app.models import app_now
 from app.signals.models import SignalCandidate
 from app.trading.models import TradeIntent, TradeUpdate
 
@@ -40,7 +40,7 @@ class TradingStore:
                         candidate.bitget_symbol or candidate.symbol, candidate.side,
                         candidate.confidence, json.dumps(candidate.missing_fields),
                         candidate.raw_text, json.dumps(payload, ensure_ascii=False),
-                        candidate.status, utc_now(),
+                        candidate.status, app_now(),
                     ))
         return signal_id
 
@@ -63,7 +63,7 @@ class TradingStore:
                         intent.symbol, intent.side, intent.order_type,
                         intent.entry_price, intent.quantity, int(intent.dry_run),
                         intent.status, json.dumps(intent.reasons),
-                        json.dumps(data, ensure_ascii=False), utc_now(), utc_now(),
+                        json.dumps(data, ensure_ascii=False), app_now(), app_now(),
                     ))
         return intent_id
 
@@ -85,7 +85,7 @@ class TradingStore:
                         order_id, intent_id, response.get("exchange", "bitget"),
                         response.get("client_oid", ""), response.get("order_id", ""),
                         response.get("status", ""), json.dumps(response, ensure_ascii=False),
-                        response.get("error", ""), utc_now(), utc_now(),
+                        response.get("error", ""), app_now(), app_now(),
                     ))
         return order_id
 
@@ -127,7 +127,7 @@ class TradingStore:
                         update.reply_url, update.action, update.close_fraction,
                         int(update.dry_run), update.status,
                         json.dumps(update.reasons),
-                        json.dumps(data, ensure_ascii=False), utc_now(), utc_now(),
+                        json.dumps(data, ensure_ascii=False), app_now(), app_now(),
                     ))
         return update_id
 

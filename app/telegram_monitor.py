@@ -14,7 +14,7 @@ from telethon.errors import SessionPasswordNeededError
 
 from app.config import AppConfig, load_config
 from app.models import ConnectionStatus, LogEntry, LogLevel, Platform
-from app.models import PlatformConnectionState, utc_now
+from app.models import PlatformConnectionState, app_now
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class TelegramMonitor:
                 return
             self._client.add_event_handler(self._handle_message, events.NewMessage)
             self._state.status = ConnectionStatus.CONNECTED
-            self._state.last_heartbeat = utc_now()
+            self._state.last_heartbeat = app_now()
             self._state.error_message = None
             logger.info("Telegram user-client monitor started")
         except asyncio.TimeoutError:
@@ -83,7 +83,7 @@ class TelegramMonitor:
 
         message = event.message
         text = message.message or "[非文本消息]"
-        self._state.last_heartbeat = utc_now()
+        self._state.last_heartbeat = app_now()
         entry = LogEntry.create(
             level=LogLevel.INFO,
             platform=Platform.TELEGRAM,

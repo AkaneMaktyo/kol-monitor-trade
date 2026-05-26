@@ -4,7 +4,7 @@ import pymysql
 from pymysql.cursors import DictCursor
 
 from app.config import MySQLConfig
-from app.models import utc_now
+from app.models import app_now
 
 
 DEFAULT_PROVIDER = "deepseek"
@@ -51,7 +51,7 @@ class LlmConfigStore:
             "model": (data.get("model") or DEFAULT_MODEL).strip(),
             "api_key": api_key.strip(),
             "enabled": 1 if data.get("enabled", True) else 0,
-            "updated_at": utc_now(),
+            "updated_at": app_now(),
         }
         sql = """
             INSERT INTO llm_provider_configs (
