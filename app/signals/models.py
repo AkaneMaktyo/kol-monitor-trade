@@ -29,6 +29,7 @@ class SignalCandidate:
     symbol: str = ""
     bitget_symbol: str = ""
     side: str = ""
+    entry_order_type: str = "limit"
     entry_numbers: list[float] = field(default_factory=list)
     take_profits: list[float] = field(default_factory=list)
     stop_loss: float | None = None
@@ -49,6 +50,7 @@ class SignalCandidate:
             "symbol": self.symbol,
             "bitget_symbol": self.bitget_symbol,
             "side": self.side,
+            "entry_order_type": self.entry_order_type,
             "entry_numbers": self.entry_numbers,
             "take_profits": self.take_profits,
             "stop_loss": self.stop_loss,

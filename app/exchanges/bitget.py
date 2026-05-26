@@ -1,17 +1,14 @@
 """Bitget classic demo futures adapter."""
 
-import base64
-import hashlib
-import hmac
 import json
 import time
-from urllib.parse import urlencode
 
 import httpx
 import pymysql
 from pymysql.cursors import DictCursor
 
 from app.config import AppConfig
+from app.exchanges.bitget_support import as_float, num, order_result, query as build_query, signature
 from app.trading.models import TradeIntent
 
 
@@ -26,50 +23,39 @@ class BitgetDemoExchange:
             "productType": self._config.trading.product_type,
             "marginMode": self._config.trading.margin_mode,
             "marginCoin": self._config.trading.margin_coin,
-            "size": _num(intent.quantity),
-            "price": _num(intent.entry_price),
+            "size": num(intent.quantity),
             "side": "buy" if intent.side == "long" else "sell",
             "tradeSide": "open",
             "orderType": intent.order_type,
-            "force": "gtc",
             "clientOid": client_oid,
         }
+        if intent.order_type == "limit":
+            body["price"] = num(intent.entry_price)
+            body["force"] = "gtc"
         response = self._request("POST", "/api/v2/mix/order/place-order", body, credential)
-        data = response.get("data") or {}
-        ok = response.get("code") == "00000"
-        return {
-            "exchange": "bitget",
-            "status": "submitted" if ok else "failed",
-            "client_oid": client_oid,
-            "order_id": str(data.get("orderId") or ""),
-            "error": "" if ok else str(response.get("msg") or response.get("code") or ""),
-            "raw": response,
-        }
+        return order_result(response, client_oid)
 
-    def close_position(self, symbol: str, hold_side: str, size, client_oid: str) -> dict:
+    def close_position(
+        self, symbol: str, hold_side: str, size, client_oid: str,
+        order_type: str = "market", price=None,
+    ) -> dict:
         side = "buy" if hold_side == "long" else "sell"
         body = {
             "symbol": symbol,
             "productType": self._config.trading.product_type,
             "marginMode": self._config.trading.margin_mode,
             "marginCoin": self._config.trading.margin_coin,
-            "size": _num(size),
+            "size": num(size),
             "side": side,
             "tradeSide": "close",
-            "orderType": "market",
+            "orderType": order_type,
             "clientOid": client_oid,
         }
+        if order_type == "limit":
+            body["price"] = num(price)
+            body["force"] = "gtc"
         response = self._request("POST", "/api/v2/mix/order/place-order", body)
-        data = response.get("data") or {}
-        ok = response.get("code") == "00000"
-        return {
-            "exchange": "bitget",
-            "status": "submitted" if ok else "failed",
-            "client_oid": client_oid,
-            "order_id": str(data.get("orderId") or ""),
-            "error": "" if ok else str(response.get("msg") or response.get("code") or ""),
-            "raw": response,
-        }
+        return order_result(response, client_oid)
 
     def get_accounts(self) -> dict:
         return self._request(
@@ -105,6 +91,15 @@ class BitgetDemoExchange:
             },
         )
 
+    def get_market_price(self, symbol: str) -> float:
+        response = self._public_get(
+            "/api/v2/mix/market/ticker",
+            {"symbol": symbol, "productType": self._config.trading.product_type},
+        )
+        data = response.get("data") or {}
+        row = data[0] if isinstance(data, list) and data else data if isinstance(data, dict) else {}
+        return as_float(row.get("markPrice") or row.get("lastPr") or row.get("lastPrice"))
+
     def _request(
         self,
         method: str,
@@ -116,13 +111,13 @@ class BitgetDemoExchange:
         credential = credential or self._credential()
         body_text = json.dumps(body or {}, separators=(",", ":")) if body else ""
         timestamp = str(int(time.time() * 1000))
-        request_path = path + _query(query)
-        signature = _signature(
+        request_path = path + build_query(query)
+        sign = signature(
             credential["api_secret"], timestamp, method, request_path, body_text,
         )
         last_error = None
         for _ in range(2):
-            result = self._try_request(method, request_path, body_text, credential, signature, timestamp)
+            result = self._try_request(method, request_path, body_text, credential, sign, timestamp)
             if result.get("code") != "NETWORK_ERROR":
                 return result
             last_error = result
@@ -159,9 +154,18 @@ class BitgetDemoExchange:
         except httpx.HTTPError as exc:
             return {"code": "NETWORK_ERROR", "msg": str(exc)}
 
+    def _public_get(self, path: str, query: dict | None = None) -> dict:
+        try:
+            with httpx.Client(proxy=self._proxy(), timeout=20) as client:
+                response = client.get(f"https://api.bitget.com{path}", params=query)
+            return response.json()
+        except json.JSONDecodeError:
+            return {"code": "HTTP_ERROR", "msg": response.text}
+        except httpx.HTTPError as exc:
+            return {"code": "NETWORK_ERROR", "msg": str(exc)}
+
     def _proxy(self) -> str | None:
-        proxy = self._config.trading.proxy_url.strip()
-        return proxy or None
+        return self._config.trading.proxy_url.strip() or None
 
     def _credential(self) -> dict:
         sql = """
@@ -183,17 +187,3 @@ class BitgetDemoExchange:
         if not row:
             raise RuntimeError("Bitget demo credentials not found")
         return row
-
-
-def _signature(secret: str, timestamp: str, method: str, path: str, body: str) -> str:
-    payload = f"{timestamp}{method}{path}{body}".encode("utf-8")
-    digest = hmac.new(secret.encode("utf-8"), payload, hashlib.sha256).digest()
-    return base64.b64encode(digest).decode("utf-8")
-
-
-def _num(value: float) -> str:
-    return f"{value:.8f}".rstrip("0").rstrip(".")
-
-
-def _query(values: dict | None) -> str:
-    return f"?{urlencode(values)}" if values else ""

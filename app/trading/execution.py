@@ -27,11 +27,13 @@ class TradingExecutor:
         update = self._handle_update(candidate, persist)
         if update:
             return {"signal_id": signal_id, **update, "intent": None, "order": None}
+        market_price = self._market_price(candidate)
         intent = build_dry_run_intent(
             candidate,
             message_time,
             config=self._config.trading,
             ignore_stale=ignore_stale,
+            market_price=market_price,
         )
         if not intent:
             return {"signal_id": signal_id, "intent": None, "order": None}
@@ -66,6 +68,18 @@ class TradingExecutor:
         if not trading.enabled or trading.execution_mode != "auto_demo":
             return False
         return intent.status == "ready" and not intent.reasons
+
+    def _market_price(self, candidate: SignalCandidate) -> float:
+        if candidate.category != "new_signal":
+            return 0.0
+        if candidate.entry_numbers or candidate.entry_order_type != "market":
+            return 0.0
+        if not candidate.bitget_symbol:
+            return 0.0
+        try:
+            return self._bitget.get_market_price(candidate.bitget_symbol)
+        except Exception:
+            return 0.0
 
     def _submit(self, intent, intent_id: str) -> dict:
         client_oid = self._client_oid(intent_id)
