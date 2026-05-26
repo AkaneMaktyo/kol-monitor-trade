@@ -20,6 +20,8 @@ class ClosePositionPayload(BaseModel):
     mode: str = Field(pattern="^(quantity|percent)$")
     quantity: float | None = None
     percent: float | None = None
+    order_type: str = Field(default="market", pattern="^(market|limit)$")
+    price: float | None = None
 
 
 @router.get("/overview")

@@ -18,6 +18,7 @@
 }
 
 .trade-modal[hidden] { display: none; }
+.trade-dialog [hidden] { display: none; }
 
 .trade-dialog {
     width: min(460px, 100%);
@@ -64,7 +65,8 @@
 
 .trade-dialog-body { display: grid; gap: 12px; padding: 14px; }
 
-.close-summary {
+.close-summary,
+.close-price-line {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -77,7 +79,41 @@
     border-radius: 4px;
 }
 
-.close-mode { display: flex; gap: 14px; }
+.close-price-line {
+    justify-content: space-between;
+    font-size: 13px;
+}
+
+.close-price-line strong { color: var(--text); font-weight: 600; }
+
+.close-segment {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.close-segment label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    color: var(--muted);
+    background: var(--panel-soft);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.close-segment label:has(input:checked) {
+    color: #20180c;
+    background: #e8b25b;
+    border-color: #e8b25b;
+}
+
+.close-segment input { position: absolute; opacity: 0; }
 
 .close-field { display: grid; gap: 6px; }
 .close-field span { color: var(--muted); font-size: 13px; }
@@ -90,6 +126,41 @@
     border: 1px solid var(--border);
     border-radius: 5px;
 }
+
+.close-slider-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    align-items: center;
+    gap: 10px;
+}
+
+.close-slider-row input {
+    width: 100%;
+    accent-color: #e8b25b;
+}
+
+.close-slider-row span {
+    color: var(--muted);
+    font-size: 13px;
+    text-align: right;
+}
+
+.close-stats {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px 12px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.close-stats strong {
+    color: var(--text);
+    font-weight: 600;
+    text-align: right;
+}
+
+.close-stats .positive { color: var(--green); }
+.close-stats .negative { color: var(--red); }
 
 .close-preview,
 .close-status { margin: 0; color: var(--muted); }

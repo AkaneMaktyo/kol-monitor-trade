@@ -14,11 +14,15 @@ class AccountActionService:
     def close_position(self, payload: dict) -> dict:
         symbol = str(payload.get("symbol") or "").upper()
         side = _side(payload.get("hold_side"))
+        order_type = _order_type(payload)
+        price = _limit_price(payload, order_type)
         position = self._find_position(symbol, side)
         total = _decimal(position.get("total"))
         size = _close_size(payload, total)
         client_oid = f"kmt_close_{int(time.time() * 1000)}"
-        order = self._exchange.close_position(symbol, side, size, client_oid)
+        order = self._exchange.close_position(
+            symbol, side, size, client_oid, order_type=order_type, price=price,
+        )
         return {
             "ok": order.get("status") == "submitted",
             "order": order,
@@ -27,6 +31,8 @@ class AccountActionService:
                 "hold_side": side,
                 "size": _format_decimal(size),
                 "total": _format_decimal(total),
+                "order_type": order_type,
+                "price": _format_decimal(price) if price else "",
             },
         }
 
@@ -60,6 +66,22 @@ def _close_size(payload: dict, total: Decimal) -> Decimal:
     if size > total:
         raise ValueError("平仓数量不能超过当前仓位")
     return size
+
+
+def _order_type(payload: dict) -> str:
+    value = str(payload.get("order_type") or "market").lower()
+    if value in {"market", "limit"}:
+        return value
+    raise ValueError("平仓订单类型无效")
+
+
+def _limit_price(payload: dict, order_type: str) -> Decimal | None:
+    if order_type == "market":
+        return None
+    price = _decimal(payload.get("price"))
+    if price <= 0:
+        raise ValueError("限价平仓价格需大于 0")
+    return price
 
 
 def _side(value) -> str:

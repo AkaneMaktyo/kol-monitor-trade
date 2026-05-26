@@ -10,15 +10,15 @@
     };
 
     function addLog(entry) {
-        KMT.state.logs.push(entry);
+        KMT.state.logs.unshift(entry);
         if (KMT.state.logs.length > KMT.state.maxLogs) {
-            KMT.state.logs = KMT.state.logs.slice(-KMT.state.maxLogs);
+            KMT.state.logs = KMT.state.logs.slice(0, KMT.state.maxLogs);
         }
         renderLogs();
     }
 
     function setLogs(entries) {
-        KMT.state.logs = [...entries].reverse();
+        KMT.state.logs = [...entries];
         renderLogs();
     }
 

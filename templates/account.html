@@ -2,7 +2,7 @@
 {% block title %}账户 - KOL Monitor Trade{% endblock %}
 {% block styles %}
 <link rel="stylesheet" href="/static/css/account.css?v=20260524c">
-<link rel="stylesheet" href="/static/css/account-close.css?v=20260524a">
+<link rel="stylesheet" href="/static/css/account-close.css?v=20260525c">
 {% endblock %}
 
 {% block content %}
@@ -112,20 +112,36 @@
                 <div class="close-summary">
                     <span id="close-symbol">--</span>
                     <span id="close-side">--</span>
-                    <span>当前仓位 <strong id="close-total">--</strong></span>
+                    <span id="close-leverage">--</span>
+                    <span id="close-margin-mode">--</span>
                 </div>
-                <div class="close-mode">
-                    <label><input type="radio" name="close-mode" value="percent" checked> 按比例</label>
-                    <label><input type="radio" name="close-mode" value="quantity"> 按数量</label>
+                <div class="close-price-line">
+                    <span>当前价格 <strong id="close-mark-price">--</strong></span>
+                    <span>持仓均价 <strong id="close-open-price">--</strong></span>
                 </div>
-                <label class="close-field" id="close-percent-field">
-                    <span>平仓比例</span>
-                    <input id="close-percent" type="number" min="1" max="100" step="1" value="50">
+                <fieldset class="close-segment">
+                    <label><input type="radio" name="close-order-type" value="market"> 市价</label>
+                    <label><input type="radio" name="close-order-type" value="limit" checked> 限价</label>
+                </fieldset>
+                <label class="close-field" id="close-price-field">
+                    <span>平仓价格</span>
+                    <input id="close-price" type="number" min="0" step="0.0001" inputmode="decimal">
                 </label>
-                <label class="close-field" id="close-quantity-field" hidden>
-                    <span>平仓数量</span>
-                    <input id="close-quantity" type="number" min="0" step="0.01">
+                <label class="close-field">
+                    <span id="close-quantity-label">平仓数量</span>
+                    <input id="close-quantity" type="number" min="0" step="0.01" inputmode="decimal">
                 </label>
+                <div class="close-slider-row">
+                    <input id="close-slider" type="range" min="0" max="100" step="1" value="50">
+                    <span id="close-slider-label">50%</span>
+                </div>
+                <div class="close-stats">
+                    <span>持仓量</span><strong id="close-total">--</strong>
+                    <span>已委托</span><strong id="close-delegated">--</strong>
+                    <span>可平</span><strong id="close-available">--</strong>
+                    <span>预计平仓收益</span><strong id="close-pnl">--</strong>
+                    <span>预计平仓手续费</span><strong id="close-fee">--</strong>
+                </div>
                 <p class="close-preview">预计平仓 <strong id="close-size">--</strong></p>
                 <p id="close-status" class="close-status"></p>
             </div>
@@ -140,6 +156,6 @@
 {% block scripts %}
 <script src="/static/js/account/labels.js?v=20260524a"></script>
 <script src="/static/js/account/record-modal.js?v=20260524b"></script>
-<script src="/static/js/account/close-modal.js?v=20260524a"></script>
-<script src="/static/js/account/overview.js?v=20260524f"></script>
+<script src="/static/js/account/close-modal.js?v=20260525b"></script>
+<script src="/static/js/account/overview.js?v=20260525b"></script>
 {% endblock %}

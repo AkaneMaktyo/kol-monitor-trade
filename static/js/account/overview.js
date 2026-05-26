@@ -118,7 +118,10 @@
             <td>${num(total)}</td><td>${num(row.openPriceAvg)}</td>
             <td>${num(row.markPrice)}</td><td class="${signClass(row.unrealizedPL)}">${signed(row.unrealizedPL)}</td>
             <td><button class="close-position-link" type="button" data-symbol="${esc(row.symbol)}"
-                data-hold-side="${esc(side)}" data-total="${esc(total)}">平仓</button></td></tr>`;
+                data-hold-side="${esc(side)}" data-total="${esc(total)}" data-available="${esc(row.available || total)}"
+                data-delegated="${esc(row.openDelegateSize || row.locked || 0)}" data-leverage="${esc(row.leverage)}"
+                data-margin-mode="${esc(row.marginMode)}" data-margin-coin="${esc(row.marginCoin || "USDT")}"
+                data-mark-price="${esc(row.markPrice)}" data-open-price="${esc(row.openPriceAvg)}">平仓</button></td></tr>`;
     }
 
     function pendingRow(row) {

@@ -35,10 +35,7 @@ class BitgetDemoExchange:
         response = self._request("POST", "/api/v2/mix/order/place-order", body, credential)
         return order_result(response, client_oid)
 
-    def close_position(
-        self, symbol: str, hold_side: str, size, client_oid: str,
-        order_type: str = "market", price=None,
-    ) -> dict:
+    def close_position(self, symbol: str, hold_side: str, size, client_oid: str) -> dict:
         side = "buy" if hold_side == "long" else "sell"
         body = {
             "symbol": symbol,
@@ -48,12 +45,9 @@ class BitgetDemoExchange:
             "size": num(size),
             "side": side,
             "tradeSide": "close",
-            "orderType": order_type,
+            "orderType": "market",
             "clientOid": client_oid,
         }
-        if order_type == "limit":
-            body["price"] = num(price)
-            body["force"] = "gtc"
         response = self._request("POST", "/api/v2/mix/order/place-order", body)
         return order_result(response, client_oid)
 

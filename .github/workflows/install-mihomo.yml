@@ -1,0 +1,40 @@
+name: Install mihomo proxy
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Optional mihomo version, for example v1.19.25"
+        required: false
+        default: ""
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload and install
+        env:
+          SSH_HOST: ${{ secrets.KMT_SSH_HOST }}
+          SSH_PORT: ${{ secrets.KMT_SSH_PORT }}
+          SSH_USER: ${{ secrets.KMT_SSH_USER }}
+          SSH_PASSWORD: ${{ secrets.KMT_SSH_PASSWORD }}
+          MIHOMO_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SSH_HOST" ] || [ -z "$SSH_PORT" ] || [ -z "$SSH_USER" ] || [ -z "$SSH_PASSWORD" ]; then
+            echo "Deployment SSH secrets are not configured."
+            exit 1
+          fi
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          mkdir -p .ops
+          printf 'MIHOMO_VERSION=%q\n' "$MIHOMO_VERSION" > .ops/mihomo.env
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "mkdir -p /root/kol-monitor-deploy"
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no -P "$SSH_PORT" \
+            deploy/install-mihomo.sh .ops/mihomo.env "$SSH_USER@$SSH_HOST:/root/kol-monitor-deploy/"
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "set -a; . /root/kol-monitor-deploy/mihomo.env; set +a; bash /root/kol-monitor-deploy/install-mihomo.sh"
