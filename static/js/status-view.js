@@ -42,6 +42,7 @@
         if (info.monitored_channels && info.monitored_channels.length) {
             return `监听: ${info.monitored_channels.join(", ")}`;
         }
+        if (info.platform === "telegram") return "未监听任何频道";
         return "监听所有可见频道";
     }
 

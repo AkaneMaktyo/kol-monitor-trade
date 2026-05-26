@@ -97,12 +97,15 @@ class TelegramMonitor:
 
     async def _is_allowed(self, event, chat_id: str) -> bool:
         channels = self._config.telegram.monitor_channels
-        if not channels:
+        normalized = {str(item).strip() for item in channels if str(item).strip()}
+        if not normalized:
+            return False
+        if "*" in normalized:
             return True
         chat = await event.get_chat()
         username = getattr(chat, "username", "") or ""
         identifiers = {chat_id, username, f"@{username}" if username else ""}
-        return any(str(item).strip() in identifiers for item in channels)
+        return bool(identifiers.intersection(normalized))
 
     async def _sender_name(self, event) -> str:
         sender = await event.get_sender()

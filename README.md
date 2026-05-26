@@ -26,7 +26,7 @@ python run.py
 - `TELEGRAM_API_ID` / `TELEGRAM_API_HASH`：Telegram 用户客户端 API 凭证。
 - `TELEGRAM_SESSION_PATH`：本地用户会话文件路径，默认 `data/telegram_user`。
 - `TELEGRAM_PROXY_URL`：可选，Telegram 连接代理，例如 `socks5://127.0.0.1:7897`。
-- `TELEGRAM_MONITOR_CHANNELS`：可选，逗号分隔的群组或频道 ID。
+- `TELEGRAM_MONITOR_CHANNELS`：可选，逗号分隔的群组或频道 ID；留空则不监听任何 Telegram 频道，填 `*` 才监听全部可见频道。
 - `DISCORD_MODE`：Discord 接入模式，`bot` 为官方 Bot 模式，`self` 为用户账号监听模式。
 - `DISCORD_BOT_TOKEN`：Discord Bot Token，`DISCORD_MODE=bot` 时使用。
 - `DISCORD_USER_TOKEN`：Discord 用户账号 Token，`DISCORD_MODE=self` 时使用。
@@ -39,7 +39,7 @@ python run.py
 - `WXPUSHER_POLL_INTERVAL_SECONDS`：轮询间隔，程序会限制最低 30 秒。
 - `FORWARD_RULES`：可选 JSON 数组，用于 Telegram/Discord 到目标频道的转发。
 
-Discord Bot 需要开启 Message Content Intent，并具备读取频道消息和发送消息权限。Telegram 用户客户端会监听该账号可见的群组或频道，可用频道 ID 或 `@username` 限制 `TELEGRAM_MONITOR_CHANNELS`。
+Discord Bot 需要开启 Message Content Intent，并具备读取频道消息和发送消息权限。Telegram 用户客户端默认不监听频道，可用频道 ID 或 `@username` 配置 `TELEGRAM_MONITOR_CHANNELS`；如需监听全部可见频道，显式填 `*`。
 
 如无法邀请 Discord Bot，可设置 `DISCORD_MODE=self` 并配置 `DISCORD_USER_TOKEN`，程序会使用用户账号能看到的频道进行监听。该模式依赖 `selfcord.py`，来自 `dolfies/discord.py-self` 的 renamed 分支；这类用户账号自动化不属于 Discord 官方推荐接入方式，存在账号风控和服务条款风险，请只在你明确接受风险时启用。
 

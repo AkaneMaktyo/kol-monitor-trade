@@ -17,7 +17,7 @@
             <tr><td>API Hash</td><td>{{ "已配置" if telegram_api_hash else "未配置" }}</td></tr>
             <tr><td>会话文件</td><td><code>{{ telegram_session_path }}</code></td></tr>
             <tr><td>代理</td><td><code>{{ telegram_proxy_url or "未配置" }}</code></td></tr>
-            <tr><td>监听频道</td><td><code>{{ telegram_channels | join(", ") or "未限制" }}</code></td></tr>
+            <tr><td>监听频道</td><td><code>{{ telegram_channels | join(", ") or "未监听" }}</code></td></tr>
         </table>
         <div class="telegram-browser">
             <div class="section-heading">
@@ -30,7 +30,7 @@
                     <button class="small-button" id="telegram-load" type="button">列出频道</button>
                 </div>
             </div>
-            <p class="settings-hint">点击 ID 可复制；把要监听的 ID 填入 <code>TELEGRAM_MONITOR_CHANNELS</code> 后重启服务。</p>
+            <p class="settings-hint">点击 ID 可复制；把要监听的 ID 填入 <code>TELEGRAM_MONITOR_CHANNELS</code> 后重启服务，留空则不监听任何 Telegram 频道。</p>
             <div id="telegram-status" class="settings-hint"></div>
             <div id="telegram-channel-list" class="telegram-channel-list"></div>
         </div>
