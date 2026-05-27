@@ -1,10 +1,8 @@
 """MySQL 日志存储。"""
 
-import pymysql
-from pymysql.cursors import DictCursor
-
 from app.config import MySQLConfig
 from app.models import LogEntry, LogLevel, Platform
+from app.persistence import connect_mysql
 
 
 class LogStore:
@@ -98,16 +96,7 @@ class LogStore:
         return [self._to_entry(row) for row in rows]
 
     def _connect(self, use_database: bool = True):
-        return pymysql.connect(
-            host=self._config.host,
-            port=self._config.port,
-            user=self._config.user,
-            password=self._config.password,
-            database=self._config.database if use_database else None,
-            charset=self._config.charset,
-            autocommit=True,
-            cursorclass=DictCursor,
-        )
+        return connect_mysql(self._config, use_database=use_database)
 
     def _quoted_database(self) -> str:
         return f"`{self._config.database.replace('`', '``')}`"

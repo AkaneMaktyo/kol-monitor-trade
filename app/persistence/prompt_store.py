@@ -3,11 +3,9 @@
 import unicodedata
 import uuid
 
-import pymysql
-from pymysql.cursors import DictCursor
-
 from app.config import MySQLConfig
 from app.models import app_now
+from app.persistence import connect_mysql
 
 
 class PromptProfileStore:
@@ -106,16 +104,7 @@ class PromptProfileStore:
         return bool(value and (pattern in value or value in pattern))
 
     def _connect(self):
-        return pymysql.connect(
-            host=self._config.host,
-            port=self._config.port,
-            user=self._config.user,
-            password=self._config.password,
-            database=self._config.database,
-            charset=self._config.charset,
-            autocommit=True,
-            cursorclass=DictCursor,
-        )
+        return connect_mysql(self._config)
 
     @staticmethod
     def _create_table_sql() -> str:

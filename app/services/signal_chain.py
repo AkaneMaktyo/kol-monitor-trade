@@ -57,6 +57,7 @@ class HistoricalSignalChain:
                 row.get("timestamp", ""),
                 persist=persist,
                 ignore_stale=ignore_stale,
+                allow_submit=False,
             )
         return {"intent": None}
 

@@ -20,11 +20,12 @@ class LiveSignalProcessor:
         detail = await self._detail(data)
         message = normalize_entry(data, detail)
         candidate = parse_signal(message)
-        return self._executor.handle_candidate(
+        result = self._executor.handle_candidate(
             candidate,
             entry.timestamp,
             persist=True,
         )
+        return {"candidate": candidate.to_dict(), "message_time": entry.timestamp, **result}
 
     async def _detail(self, data: dict) -> str:
         url = detail_url(data)

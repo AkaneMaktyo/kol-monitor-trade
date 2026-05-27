@@ -5,10 +5,14 @@ import re
 from html import unescape
 from html.parser import HTMLParser
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
+from urllib.request import Request
 
 from app.config import WxPusherConfig
+from app.services.cache import TtlCache
+from app.services.wxpusher.http import open_direct
 from app.services.wxpusher.html import ArticleHtmlParser
+
+_HTML_CACHE = TtlCache(ttl_seconds=21600, max_size=512)
 
 
 async def fetch_detail_text(url: str, config: WxPusherConfig) -> str:
@@ -30,22 +34,38 @@ def _validate_url(url: str) -> None:
 
 
 def _fetch_text(url: str, config: WxPusherConfig) -> str:
-    text = ArticleTextParser.parse(_read_html(url, config))
+    text = ArticleTextParser.parse(_cached_html(url, config))
     if not text:
         raise ValueError("详情页没有可提取正文")
     return text[:8000]
 
 
 def _fetch_html(url: str, config: WxPusherConfig) -> str:
-    html = ArticleHtmlParser.parse(_read_html(url, config))
+    html = ArticleHtmlParser.parse(_cached_html(url, config))
     if not html:
         raise ValueError("详情页没有可提取正文")
     return html[:20000]
 
 
+def clear_detail_cache(url: str = "") -> None:
+    if url:
+        _HTML_CACHE.pop(url)
+        return
+    _HTML_CACHE.clear()
+
+
+def _cached_html(url: str, config: WxPusherConfig) -> str:
+    cached = _HTML_CACHE.get(url)
+    if cached is not None:
+        return cached
+    html = _read_html(url, config)
+    _HTML_CACHE.set(url, html)
+    return html
+
+
 def _read_html(url: str, config: WxPusherConfig) -> str:
     request = Request(url, headers=_headers(config))
-    with urlopen(request, timeout=20) as response:
+    with open_direct(request, timeout=20) as response:
         return response.read().decode("utf-8", errors="replace")
 
 

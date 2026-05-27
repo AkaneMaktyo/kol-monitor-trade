@@ -8,7 +8,7 @@
 
     async function boot() {
         KMTLogView.bindFilters();
-        await loadInitialData();
+        await Promise.all([loadInitialData(), loadSignalBoard()]);
         connect();
     }
 
@@ -27,6 +27,15 @@
         return response.json();
     }
 
+    async function loadSignalBoard() {
+        if (!window.KMTSignalBoard) return;
+        try {
+            await KMTSignalBoard.load();
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
     function connect() {
         const protocol = location.protocol === "https:" ? "wss" : "ws";
         ws = new WebSocket(`${protocol}://${location.host}/ws`);
@@ -43,6 +52,9 @@
             }
             if (message.type === "log_entry") {
                 KMTLogView.addLog(message.data);
+            }
+            if (message.type === "signal_result" && window.KMTSignalBoard) {
+                KMTSignalBoard.apply(message.data);
             }
         };
 

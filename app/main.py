@@ -17,6 +17,7 @@ from app.forwarder import MessageForwarder
 from app.models import LogEntry, LogLevel, Platform, SystemState
 from app.persistence.llm_store import LlmConfigStore
 from app.persistence.account_store import AccountStore
+from app.persistence import close_mysql_pool
 from app.persistence.prompt_store import PromptProfileStore
 from app.persistence.store import LogStore
 from app.persistence.trading_store import TradingStore
@@ -132,6 +133,7 @@ async def lifespan(app: FastAPI):
     await telegram_monitor.stop()
     await discord_monitor.stop()
     await wxpusher_monitor.stop()
+    close_mysql_pool()
 
 
 app = FastAPI(

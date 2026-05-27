@@ -21,6 +21,15 @@ class RiskBudget:
     quote_risk_usdt: float
 
 
+def describe_risk_budget(config: TradingConfig | None) -> dict:
+    budget = _risk_budget(config)
+    return {
+        "account_equity_usdt": budget.account_equity_usdt,
+        "risk_percent": budget.risk_percent,
+        "quote_risk_usdt": budget.quote_risk_usdt,
+    }
+
+
 def build_dry_run_intent(
     candidate: SignalCandidate,
     message_time: str,

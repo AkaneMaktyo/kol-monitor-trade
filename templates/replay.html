@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}回放 - KOL Monitor Trade{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="/static/css/account-close.css?v=20260525c">
+<link rel="stylesheet" href="/static/css/replay/page.css?v=20260527a">
+{% endblock %}
+
+{% block content %}
+<section class="replay-page">
+    <div class="replay-head">
+        <div>
+            <h1>Gold Empire 回放台</h1>
+            <p>聚焦 WxPusher 历史信号，支持排障复核、持久化回放和人工真实执行。</p>
+        </div>
+        <div id="replay-readiness" class="replay-readiness"></div>
+    </div>
+
+    <form id="replay-filter-form" class="panel replay-filters">
+        <label><span>作者</span><input id="filter-author" name="author" type="text" maxlength="120"></label>
+        <label><span>来源频道</span><input id="filter-source-channel" name="source_channel" type="text" maxlength="120"></label>
+        <label>
+            <span>解析状态</span>
+            <select id="filter-candidate-status" name="candidate_status">
+                <option value="">全部</option>
+                <option value="parsed">parsed</option>
+                <option value="needs_review">needs_review</option>
+            </select>
+        </label>
+        <label>
+            <span>执行状态</span>
+            <select id="filter-execution-status" name="execution_status">
+                <option value="">全部</option>
+                <option value="ready">ready</option>
+                <option value="blocked">blocked</option>
+                <option value="dry_run">dry_run</option>
+                <option value="submitted">submitted</option>
+                <option value="failed">failed</option>
+            </select>
+        </label>
+        <label><span>数量</span><input id="filter-limit" name="limit" type="number" min="1" max="120" value="120"></label>
+        <button id="filter-submit" type="submit">刷新</button>
+    </form>
+
+    <div id="replay-summary" class="replay-summary"></div>
+
+    <div class="replay-layout">
+        <section class="panel replay-table-panel">
+            <div class="replay-section-head">
+                <h2>候选结果</h2>
+                <span id="replay-table-count">0 条</span>
+            </div>
+            <div class="replay-table-wrap">
+                <table class="replay-table">
+                    <thead>
+                        <tr>
+                            <th>批量</th>
+                            <th>时间</th>
+                            <th>作者 / 频道</th>
+                            <th>摘要</th>
+                            <th>解析</th>
+                            <th>执行</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="replay-rows"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <aside class="panel replay-detail-panel">
+            <div class="replay-section-head">
+                <h2>详情面板</h2>
+                <span id="replay-detail-title">未选择记录</span>
+            </div>
+            <div class="detail-block"><h3>原始消息</h3><pre id="detail-raw-content"></pre></div>
+            <div class="detail-block"><h3>补全详情</h3><pre id="detail-extra-content"></pre></div>
+            <div class="detail-block"><h3>标准化结果</h3><pre id="detail-normalized-content"></pre></div>
+            <div class="detail-block"><h3>解析 / 风控 / 执行</h3><pre id="detail-result-content"></pre></div>
+        </aside>
+    </div>
+
+    <section class="panel replay-batch-panel">
+        <div class="replay-section-head">
+            <h2>批量操作</h2>
+            <span id="replay-selected-count">已选 0 条</span>
+        </div>
+        <div class="batch-actions">
+            <button type="button" data-batch-action="preview">批量仅回放</button>
+            <button type="button" data-batch-action="persist">批量持久化</button>
+            <button type="button" data-batch-action="real_execute" class="danger">批量真实执行</button>
+        </div>
+        <p id="replay-action-status" class="replay-action-status"></p>
+    </section>
+</section>
+
+<div id="replay-confirm-modal" class="trade-modal" hidden>
+    <section class="trade-dialog" role="dialog" aria-modal="true" aria-labelledby="replay-confirm-title">
+        <form id="replay-confirm-form">
+            <div class="trade-dialog-head">
+                <h2 id="replay-confirm-title">真实执行确认</h2>
+                <button id="replay-confirm-cancel" type="button" aria-label="关闭">关闭</button>
+            </div>
+            <div class="trade-dialog-body">
+                <p id="replay-confirm-summary" class="confirm-summary"></p>
+                <pre id="replay-confirm-preview" class="confirm-preview"></pre>
+                <label class="close-field">
+                    <span>请输入 REAL_EXECUTE</span>
+                    <input id="replay-confirm-input" type="text" autocomplete="off" spellcheck="false">
+                </label>
+                <p id="replay-confirm-status" class="close-status"></p>
+            </div>
+            <div class="trade-dialog-actions">
+                <button id="replay-confirm-submit" type="submit">确认真实执行</button>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/app-state.js?v=20260521f"></script>
+<script src="/static/js/replay/state.js?v=20260527a"></script>
+<script src="/static/js/replay/confirm-modal.js?v=20260527a"></script>
+<script src="/static/js/replay/render.js?v=20260527a"></script>
+<script src="/static/js/replay/page.js?v=20260527a"></script>
+{% endblock %}

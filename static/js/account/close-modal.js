@@ -120,7 +120,8 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload(size, type, price)),
             });
-            const data = await response.json();
+            const data = response.headers.get("content-type")?.includes("application/json")
+                ? await response.json() : { detail: await response.text() };
             if (!response.ok || !data.ok) throw new Error(data.detail || data.order?.error || "平仓提交失败");
             setStatus(`已提交，订单号 ${data.order.order_id || data.order.client_oid}`, false);
             if (window.KMTAccountOverview) window.KMTAccountOverview.load();

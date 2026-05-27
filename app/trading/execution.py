@@ -22,6 +22,8 @@ class TradingExecutor:
         message_time: str,
         persist: bool = True,
         ignore_stale: bool = False,
+        allow_submit: bool = True,
+        audit: dict | None = None,
     ) -> dict:
         signal_id = self._store.save_candidate(candidate) if persist else ""
         update = self._handle_update(candidate, persist)
@@ -38,11 +40,14 @@ class TradingExecutor:
         if not intent:
             return {"signal_id": signal_id, "intent": None, "order": None}
         execute = self._can_execute(intent)
-        if execute:
+        self._apply_audit(intent, audit)
+        if execute and allow_submit:
             intent.dry_run = False
             intent.status = "ready"
         intent_id = self._store.save_intent(signal_id, intent) if persist else ""
-        order = self._submit(intent, intent_id) if execute else self._dry_order(intent)
+        order = self._submit(intent, intent_id) if execute and allow_submit else self._dry_order(intent)
+        if audit and order:
+            order.update(audit)
         if persist and order:
             self._store.save_order(intent_id, order)
         return {
@@ -108,3 +113,11 @@ class TradingExecutor:
     def _client_oid(intent_id: str) -> str:
         base = intent_id.replace("intent_", "")[:20] if intent_id else uuid.uuid4().hex[:20]
         return f"kol_{base}"
+
+    @staticmethod
+    def _apply_audit(intent, audit: dict | None) -> None:
+        if not audit:
+            return
+        intent.origin = audit.get("origin", "")
+        intent.origin_log_id = audit.get("origin_log_id", "")
+        intent.triggered_at = audit.get("triggered_at", "")

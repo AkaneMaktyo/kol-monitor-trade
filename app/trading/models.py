@@ -21,6 +21,9 @@ class TradeIntent:
     notional_usdt: float = 0.0
     account_equity_usdt: float = 0.0
     risk_percent: float = 0.0
+    origin: str = ""
+    origin_log_id: str = ""
+    triggered_at: str = ""
 
     def to_dict(self) -> dict:
         return {
@@ -40,6 +43,9 @@ class TradeIntent:
             "notional_usdt": self.notional_usdt,
             "account_equity_usdt": self.account_equity_usdt,
             "risk_percent": self.risk_percent,
+            "origin": self.origin,
+            "origin_log_id": self.origin_log_id,
+            "triggered_at": self.triggered_at,
         }
 
 

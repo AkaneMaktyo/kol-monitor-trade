@@ -4,17 +4,23 @@ import json
 import time
 
 import httpx
-import pymysql
-from pymysql.cursors import DictCursor
 
 from app.config import AppConfig
 from app.exchanges.bitget_support import as_float, num, order_result, query as build_query, signature
+from app.persistence import connect_mysql
 from app.trading.models import TradeIntent
 
 
 class BitgetDemoExchange:
     def __init__(self, config: AppConfig):
         self._config = config
+
+    def credential_status(self) -> dict:
+        try:
+            self._credential()
+            return {"ok": True, "source": "database", "error": ""}
+        except Exception as exc:
+            return {"ok": False, "source": "database", "error": str(exc)}
 
     def place_order(self, intent: TradeIntent, client_oid: str) -> dict:
         credential = self._credential()
@@ -35,7 +41,16 @@ class BitgetDemoExchange:
         response = self._request("POST", "/api/v2/mix/order/place-order", body, credential)
         return order_result(response, client_oid)
 
-    def close_position(self, symbol: str, hold_side: str, size, client_oid: str) -> dict:
+    def close_position(
+        self,
+        symbol: str,
+        hold_side: str,
+        size,
+        client_oid: str,
+        *,
+        order_type: str = "market",
+        price=None,
+    ) -> dict:
         side = "buy" if hold_side == "long" else "sell"
         body = {
             "symbol": symbol,
@@ -45,9 +60,12 @@ class BitgetDemoExchange:
             "size": num(size),
             "side": side,
             "tradeSide": "close",
-            "orderType": "market",
+            "orderType": order_type,
             "clientOid": client_oid,
         }
+        if order_type == "limit":
+            body["price"] = num(price)
+            body["force"] = "gtc"
         response = self._request("POST", "/api/v2/mix/order/place-order", body)
         return order_result(response, client_oid)
 
@@ -127,7 +145,7 @@ class BitgetDemoExchange:
         timestamp: str,
     ) -> dict:
         try:
-            with httpx.Client(proxy=self._proxy(), timeout=20) as client:
+            with httpx.Client(proxy=self._proxy(), timeout=20, trust_env=False) as client:
                 response = client.request(
                     method,
                     f"https://api.bitget.com{request_path}",
@@ -150,7 +168,7 @@ class BitgetDemoExchange:
 
     def _public_get(self, path: str, query: dict | None = None) -> dict:
         try:
-            with httpx.Client(proxy=self._proxy(), timeout=20) as client:
+            with httpx.Client(proxy=self._proxy(), timeout=20, trust_env=False) as client:
                 response = client.get(f"https://api.bitget.com{path}", params=query)
             return response.json()
         except json.JSONDecodeError:
@@ -170,10 +188,9 @@ class BitgetDemoExchange:
             LIMIT 1
         """
         mysql = self._config.mysql
-        with pymysql.connect(
-            host=mysql.host, port=mysql.port, user=mysql.user,
-            password=mysql.password, database=self._config.trading.credential_database,
-            charset=mysql.charset, autocommit=True, cursorclass=DictCursor,
+        with connect_mysql(
+            mysql,
+            database=self._config.trading.credential_database,
         ) as conn:
             with conn.cursor() as cursor:
                 cursor.execute(sql)

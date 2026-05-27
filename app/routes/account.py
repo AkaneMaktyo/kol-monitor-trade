@@ -40,6 +40,8 @@ async def close_position(payload: ClosePositionPayload, request: Request):
         return await asyncio.to_thread(service.close_position, payload.model_dump())
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc) or "平仓请求失败") from exc
 
 
 @router.get("/message-detail")

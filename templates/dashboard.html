@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}仪表盘 - KOL Monitor Trade{% endblock %}
-{% block styles %}<link rel="stylesheet" href="/static/css/dashboard.css?v=20260521f">{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="/static/css/dashboard.css?v=20260527a">
+<link rel="stylesheet" href="/static/css/dashboard-trading.css?v=20260527a">
+{% endblock %}
 
 {% block content %}
 <div class="dashboard-grid">
@@ -43,6 +46,23 @@
         </div>
     </section>
 
+    <section class="panel trading-panel" id="trading-panel">
+        <div class="trading-head">
+            <div>
+                <h1>交易决策台</h1>
+                <p>实时信号、仓位更新和订单结果都会直接在这里刷新。</p>
+            </div>
+            <span id="trading-mode" class="trading-mode-pill">加载中</span>
+        </div>
+        <div id="trading-summary" class="trading-summary"></div>
+        <div class="signal-board">
+            <section class="signal-lane"><div class="lane-head"><h2>可执行信号</h2><span id="count-ready">0</span></div><div id="signal-ready-list" class="signal-list"></div></section>
+            <section class="signal-lane"><div class="lane-head"><h2>待人工确认</h2><span id="count-review">0</span></div><div id="signal-review-list" class="signal-list"></div></section>
+            <section class="signal-lane"><div class="lane-head"><h2>仓位更新</h2><span id="count-updates">0</span></div><div id="signal-update-list" class="signal-list"></div></section>
+            <section class="signal-lane"><div class="lane-head"><h2>订单结果</h2><span id="count-orders">0</span></div><div id="signal-order-list" class="signal-list"></div></section>
+        </div>
+    </section>
+
     <section class="panel log-panel">
         <div class="log-header">
             <h1>实时日志</h1>
@@ -73,5 +93,6 @@
 <script src="/static/js/status-view.js?v=20260521f"></script>
 <script src="/static/js/log-detail.js?v=20260521f"></script>
 <script src="/static/js/log-view.js?v=20260521f"></script>
+<script src="/static/js/dashboard/signal-board.js?v=20260527a"></script>
 <script src="/static/js/app.js"></script>
 {% endblock %}

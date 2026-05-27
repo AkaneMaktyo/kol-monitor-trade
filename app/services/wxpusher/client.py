@@ -3,9 +3,10 @@
 import asyncio
 import json
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.request import Request
 
 from app.config import WxPusherConfig
+from app.services.wxpusher.http import open_direct
 
 LIST_URL = "https://wxpusher.zjiecode.com/api/need-login/device/message/list-v2"
 MAX_MESSAGE_ID = "9223372036854775807"
@@ -41,7 +42,7 @@ class WxPusherClient:
             headers=self._headers(),
             method="GET",
         )
-        with urlopen(request, timeout=20) as response:
+        with open_direct(request, timeout=20) as response:
             payload = json.loads(response.read().decode("utf-8"))
         return self._extract_messages(payload)
 

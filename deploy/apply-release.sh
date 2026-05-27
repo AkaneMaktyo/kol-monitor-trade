@@ -54,6 +54,8 @@ User=koltrade
 Group=koltrade
 WorkingDirectory=$APP_BASE/current
 EnvironmentFile=$ENV_DIR/app.env
+Environment="HTTP_PROXY=" "HTTPS_PROXY=" "ALL_PROXY=" "http_proxy=" "https_proxy=" "all_proxy="
+Environment="NO_PROXY=127.0.0.1,localhost,::1" "no_proxy=127.0.0.1,localhost,::1"
 ExecStart=$VENV_DIR/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port $PORT --log-level info
 Restart=always
 RestartSec=5

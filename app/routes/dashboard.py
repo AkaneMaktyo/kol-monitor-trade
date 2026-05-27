@@ -52,3 +52,11 @@ async def account_page(request: Request):
         request,
         "account.html",
     )
+
+
+@router.get("/replay", response_class=HTMLResponse)
+async def replay_page(request: Request):
+    return request.app.state.templates.TemplateResponse(
+        request,
+        "replay.html",
+    )
