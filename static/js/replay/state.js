@@ -5,6 +5,9 @@
         filters: {
             author: "",
             source_channel: "",
+            date_from: "",
+            date_to: "",
+            symbol: "",
             candidate_status: "",
             execution_status: "",
             limit: 120,

@@ -21,7 +21,8 @@ from app.persistence import close_mysql_pool
 from app.persistence.prompt_store import PromptProfileStore
 from app.persistence.store import LogStore
 from app.persistence.trading_store import TradingStore
-from app.routes import account, api, dashboard, signals
+from app.routes import account, api, dashboard, signals, trading_controls
+from app.services.dashboard.trading_controls import TradingControlsService
 from app.services.signal_runtime import LiveSignalProcessor
 from app.services.messages import MessageService
 from app.services.wxpusher import WxPusherMonitor
@@ -85,6 +86,7 @@ async def lifespan(app: FastAPI):
     await message_service.load_recent()
     trading_executor = TradingExecutor(config, trading_store)
     signal_processor = LiveSignalProcessor(config, trading_executor)
+    trading_controls_service = TradingControlsService(config)
 
     app.state.templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
     app.state.config = config
@@ -96,6 +98,7 @@ async def lifespan(app: FastAPI):
     app.state.trading_store = trading_store
     app.state.account_store = account_store
     app.state.trading_executor = trading_executor
+    app.state.trading_controls_service = trading_controls_service
     app.state.message_service = message_service
 
     forwarder = MessageForwarder(config)
@@ -148,6 +151,7 @@ app.include_router(dashboard.router)
 app.include_router(api.router)
 app.include_router(signals.router)
 app.include_router(account.router)
+app.include_router(trading_controls.router)
 
 
 @app.websocket("/ws")

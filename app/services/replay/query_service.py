@@ -24,21 +24,35 @@ class ReplayQueryService:
         *,
         author: str = "",
         source_channel: str = "",
+        date_from: str = "",
+        date_to: str = "",
+        symbol: str = "",
         candidate_status: str = "",
         execution_status: str = "",
         limit: int = 120,
     ) -> dict:
         size = max(1, min(limit, 120))
-        cache_key = _cache_key(author, source_channel, candidate_status, execution_status, size)
+        cache_key = _cache_key(
+            author,
+            source_channel,
+            date_from,
+            date_to,
+            symbol,
+            candidate_status,
+            execution_status,
+            size,
+        )
         cached = _QUERY_CACHE.get(cache_key)
         if cached is not None:
             return deepcopy(cached)
-        fetch_limit = min(max(size * 4, 200), 500)
+        fetch_limit = _fetch_limit(size, symbol)
         rows = await asyncio.to_thread(
             self._store.recent_wxpusher,
             fetch_limit,
             author,
             source_channel,
+            date_from,
+            date_to,
         )
         live = build_live_context(self._config)
         seen, items = set(), []
@@ -50,6 +64,8 @@ class ReplayQueryService:
                 continue
             seen.add(key)
             item = await inspect_log(self._config, self._executor, row, live_context=live)
+            if symbol and not _match_symbol(item, symbol):
+                continue
             if candidate_status and item["candidate"]["status"] != candidate_status:
                 continue
             if execution_status and item["execution"]["status"] != execution_status:
@@ -61,6 +77,9 @@ class ReplayQueryService:
             "filters": {
                 "author": author,
                 "source_channel": source_channel,
+                "date_from": date_from,
+                "date_to": date_to,
+                "symbol": symbol,
                 "candidate_status": candidate_status,
                 "execution_status": execution_status,
                 "limit": size,
@@ -88,16 +107,37 @@ def _summary(items: list[dict]) -> dict:
     }
 
 
+def _fetch_limit(limit: int, symbol: str) -> int:
+    if symbol.strip():
+        return 500
+    return min(max(limit * 4, 200), 500)
+
+
+def _match_symbol(item: dict, symbol: str) -> bool:
+    target = symbol.strip().upper()
+    values = (
+        item.get("candidate", {}).get("symbol", ""),
+        item.get("candidate", {}).get("bitget_symbol", ""),
+    )
+    return any(target in str(value or "").upper() for value in values)
+
+
 def _cache_key(
     author: str,
     source_channel: str,
+    date_from: str,
+    date_to: str,
+    symbol: str,
     candidate_status: str,
     execution_status: str,
     limit: int,
-) -> tuple[str, str, str, str, int]:
+) -> tuple[str, str, str, str, str, str, str, int]:
     return (
         author.strip(),
         source_channel.strip(),
+        date_from.strip(),
+        date_to.strip(),
+        symbol.strip().upper(),
         candidate_status.strip(),
         execution_status.strip(),
         limit,

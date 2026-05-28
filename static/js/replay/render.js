@@ -15,6 +15,7 @@
         detailResult: $("#detail-result-content"),
         actionStatus: $("#replay-action-status"),
     };
+    const labels = window.KMTLabels;
 
     function render() {
         const state = window.KMTReplayState.state;
@@ -33,28 +34,24 @@
         refs.detailRaw.textContent = item ? item.raw_content || "" : "";
         refs.detailExtra.textContent = detailText(item);
         refs.detailNormalized.textContent = item ? item.normalized_text || "" : "";
-        refs.detailResult.textContent = item ? JSON.stringify({
-            candidate: item.candidate,
-            risk: item.risk,
-            execution: item.execution,
-        }, null, 2) : "";
+        refs.detailResult.textContent = item ? JSON.stringify(labels.replayDetail(item), null, 2) : "";
     }
 
     function readinessCards(data) {
         return [
-            card("执行模式", data.execution_mode || "--", data.live_mode ? "当前允许真实执行" : data.disabled_reason || "当前不允许真实执行"),
-            card("凭证状态", data.credential_status || "--", data.credential_message || ""),
+            card("执行模式", labels.mode(data.execution_mode), data.live_mode ? "当前允许真实执行" : data.disabled_reason || "当前不允许真实执行"),
+            card("凭证状态", labels.credential(data.credential_status), data.credential_message || ""),
             card("风险预算", `${num(data.risk_budget?.quote_risk_usdt)} USDT`, `${num(data.risk_budget?.risk_percent)}% / 权益 ${num(data.risk_budget?.account_equity_usdt)}`),
-            card("批量真实执行", data.live_mode ? "可用" : "锁定", data.live_mode ? "仍需二次确认" : data.disabled_reason || ""),
+            card("真实执行", data.live_mode ? "可用" : "锁定", data.live_mode ? "仍需二次确认" : data.disabled_reason || ""),
         ].join("");
     }
 
     function summaryCards(data) {
         return [
-            card("当前结果", `${data.total || 0} 条`, `可批量执行 ${data.real_executable || 0} 条`),
-            card("parsed", data.candidate_statuses?.parsed || 0, ""),
-            card("needs_review", data.candidate_statuses?.needs_review || 0, ""),
-            card("执行状态", summaryText(data.execution_statuses || {}), ""),
+            card("结果总数", `${data.total || 0} 条`, `可批量执行 ${data.real_executable || 0} 条`),
+            card(labels.status("parsed"), data.candidate_statuses?.parsed || 0, ""),
+            card(labels.status("needs_review"), data.candidate_statuses?.needs_review || 0, ""),
+            card("执行状态", Object.entries(data.execution_statuses || {}).map(([key, value]) => `${labels.status(key)}:${value}`).join(" / ") || "--", ""),
         ].join("");
     }
 
@@ -69,10 +66,10 @@
             <td>${pill(item.candidate?.status)}${reasonTags(item.risk?.reasons || [])}</td>
             <td>${pill(item.execution?.status)}${detailState(item.detail_state)}</td>
             <td><div class="row-actions">
-                ${button("view_detail", item.log_id, "查看详情")}
-                ${button("preview", item.log_id, "仅回放")}
-                ${button("persist", item.log_id, "持久化回放")}
-                ${button("real_execute", item.log_id, "真实执行", !actions.real_execute, actions.real_execute_disabled_reason)}
+                ${button("view_detail", item.log_id, "详情")}
+                ${button("preview", item.log_id, "预览")}
+                ${button("persist", item.log_id, "持久化")}
+                ${button("real_execute", item.log_id, "真实执行", !actions.real_execute, labels.reasonText(actions.real_execute_disabled_reason))}
             </div></td>
         </tr>`;
     }
@@ -85,8 +82,7 @@
     }
 
     function detailState(detail) {
-        const value = detail?.status || "--";
-        return `<div class="pill-row">${pill(value)}</div>`;
+        return `<div class="pill-row">${pill(labels.status(detail?.status))}</div>`;
     }
 
     function button(action, logId, label, disabled, title) {
@@ -94,8 +90,7 @@
     }
 
     function reasonTags(reasons) {
-        if (!reasons.length) return "";
-        return `<div class="pill-row">${reasons.slice(0, 2).map((item) => pill(item)).join("")}</div>`;
+        return reasons.length ? `<div class="pill-row">${reasons.slice(0, 2).map((item) => pill(labels.reason(item))).join("")}</div>` : "";
     }
 
     function card(label, value, note) {
@@ -103,11 +98,7 @@
     }
 
     function pill(value) {
-        return `<span class="status-pill">${esc(value || "--")}</span>`;
-    }
-
-    function summaryText(data) {
-        return Object.entries(data).map(([key, value]) => `${key}:${value}`).join(" / ") || "--";
+        return `<span class="status-pill">${esc(labels.status(value))}</span>`;
     }
 
     function num(value) {

@@ -7,6 +7,9 @@
         rows: $("#replay-rows"),
         author: $("#filter-author"),
         source: $("#filter-source-channel"),
+        dateFrom: $("#filter-date-from"),
+        dateTo: $("#filter-date-to"),
+        symbol: $("#filter-symbol"),
         candidate: $("#filter-candidate-status"),
         execution: $("#filter-execution-status"),
         limit: $("#filter-limit"),
@@ -24,21 +27,16 @@
     }
 
     async function load(preferredLogId) {
-        const state = window.KMTReplayState.state;
-        const filters = currentFilters();
-        const response = await fetch(`/api/signals/replay/gold-empire?${new URLSearchParams(filters)}`);
+        const response = await fetch(`/api/signals/replay/gold-empire?${new URLSearchParams(currentFilters())}`);
         const data = await response.json();
         if (!response.ok) throw new Error(data.detail || "回放列表加载失败");
-        state.filters = filters;
+        const state = window.KMTReplayState.state;
+        state.filters = data.filters || currentFilters();
         state.data = data;
         syncSelection();
         state.detailId = preferredLogId && exists(preferredLogId) ? preferredLogId : state.detailId;
         if (!exists(state.detailId)) state.detailId = data.items[0]?.log_id || "";
-        refs.author.value = filters.author;
-        refs.source.value = filters.source_channel;
-        refs.candidate.value = filters.candidate_status;
-        refs.execution.value = filters.execution_status;
-        refs.limit.value = String(filters.limit);
+        syncForm(state.filters);
         window.KMTReplayRender.render();
     }
 
@@ -46,17 +44,33 @@
         return {
             author: refs.author.value.trim(),
             source_channel: refs.source.value.trim(),
+            date_from: refs.dateFrom.value,
+            date_to: refs.dateTo.value,
+            symbol: refs.symbol.value.trim(),
             candidate_status: refs.candidate.value,
             execution_status: refs.execution.value,
             limit: String(Math.max(1, Math.min(Number(refs.limit.value || 120), 120))),
         };
     }
 
+    function syncForm(filters) {
+        refs.author.value = filters.author || "";
+        refs.source.value = filters.source_channel || "";
+        refs.dateFrom.value = filters.date_from || "";
+        refs.dateTo.value = filters.date_to || "";
+        refs.symbol.value = filters.symbol || "";
+        refs.candidate.value = filters.candidate_status || "";
+        refs.execution.value = filters.execution_status || "";
+        refs.limit.value = String(filters.limit || 120);
+    }
+
     function syncSelection() {
         const state = window.KMTReplayState.state;
-        const allowed = new Set(state.data.items
-            .filter((item) => item.selectable_actions?.batch_selectable)
-            .map((item) => item.log_id));
+        const allowed = new Set(
+            state.data.items
+                .filter((item) => item.selectable_actions?.batch_selectable)
+                .map((item) => item.log_id)
+        );
         state.selected = new Set([...state.selected].filter((id) => allowed.has(id)));
     }
 
@@ -102,8 +116,10 @@
         if (action !== "real_execute") return safeRun(() => submitAction(action, logIds, ""));
         const items = window.KMTReplayState.state.data.items.filter((item) => logIds.includes(item.log_id));
         window.KMTReplayConfirm.open({
-            summary: `本次将对 ${items.length} 条记录走真实执行链路。当前模式：${window.KMTReplayState.state.data.readiness.execution_mode || "--"}`,
-            preview: items.map((item) => `${item.candidate.bitget_symbol || item.candidate.symbol || "--"} / ${item.candidate.side || "--"} / 风险 ${item.risk.quote_risk_usdt || 0}U`).join("\n"),
+            summary: `本次将对 ${items.length} 条记录走真实执行链路。当前模式：${modeLabel(window.KMTReplayState.state.data.readiness.execution_mode)}`,
+            preview: items
+                .map((item) => `${item.candidate.bitget_symbol || item.candidate.symbol || "--"} / ${sideLabel(item.candidate.side)} / 风险 ${item.risk.quote_risk_usdt || 0}U`)
+                .join("\n"),
             onConfirm: (text) => submitAction(action, logIds, text),
         });
     }
@@ -124,7 +140,7 @@
     }
 
     function actionText(data) {
-        const base = `动作 ${data.action} 已处理 ${data.total || 0} 条`;
+        const base = `动作 ${actionLabel(data.action)} 已处理 ${data.total || 0} 条`;
         return data.stopped_at ? `${base}，在第 ${data.stopped_at} 条停止` : base;
     }
 
@@ -160,5 +176,17 @@
     function setSocket(target, connected) {
         target.textContent = connected ? "已连接" : "未连接";
         target.style.color = connected ? "var(--green)" : "var(--red)";
+    }
+
+    function modeLabel(mode) {
+        return ({ dry_run: "演练模式", auto_demo: "自动模拟盘" })[mode] || mode || "--";
+    }
+
+    function sideLabel(side) {
+        return ({ long: "多", short: "空" })[side] || "--";
+    }
+
+    function actionLabel(action) {
+        return ({ preview: "预览", persist: "持久化", real_execute: "真实执行" })[action] || action || "--";
     }
 })();

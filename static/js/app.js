@@ -8,7 +8,7 @@
 
     async function boot() {
         KMTLogView.bindFilters();
-        await Promise.all([loadInitialData(), loadSignalBoard()]);
+        await Promise.all([loadInitialData(), loadSignalBoard(), loadTradingControls()]);
         connect();
     }
 
@@ -31,6 +31,15 @@
         if (!window.KMTSignalBoard) return;
         try {
             await KMTSignalBoard.load();
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async function loadTradingControls() {
+        if (!window.KMTTradingControls) return;
+        try {
+            await KMTTradingControls.load();
         } catch (error) {
             console.error(error);
         }

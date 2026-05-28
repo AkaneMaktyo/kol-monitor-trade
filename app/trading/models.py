@@ -24,6 +24,8 @@ class TradeIntent:
     origin: str = ""
     origin_log_id: str = ""
     triggered_at: str = ""
+    layer_index: int = 0
+    layer_count: int = 1
 
     def to_dict(self) -> dict:
         return {
@@ -46,6 +48,8 @@ class TradeIntent:
             "origin": self.origin,
             "origin_log_id": self.origin_log_id,
             "triggered_at": self.triggered_at,
+            "layer_index": self.layer_index,
+            "layer_count": self.layer_count,
         }
 
 

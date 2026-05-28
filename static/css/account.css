@@ -133,7 +133,8 @@ tr:last-child td { border-bottom: 0; }
     background: rgba(79, 140, 255, 0.14);
 }
 
-.message-link {
+.message-link,
+.history-link {
     padding: 2px 7px;
     color: var(--accent);
     background: rgba(79, 140, 255, 0.12);

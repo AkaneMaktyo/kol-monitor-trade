@@ -62,7 +62,7 @@
             </div>
             <div class="table-wrap">
                 <table>
-                    <thead><tr><th>合约</th><th>方向</th><th>开仓均价</th><th>平仓均价</th><th>开仓数量</th><th>平仓数量</th><th>已实现盈亏</th><th>净盈亏</th><th>更新时间</th></tr></thead>
+                    <thead><tr><th>合约</th><th>方向</th><th>开仓均价</th><th>平仓均价</th><th>开仓数量</th><th>平仓数量</th><th>已实现盈亏</th><th>净盈亏</th><th>更新时间</th><th>链路</th></tr></thead>
                     <tbody id="history-position-rows"></tbody>
                 </table>
             </div>
@@ -94,7 +94,7 @@
 <div id="message-modal" class="message-modal" hidden>
     <section class="message-dialog" role="dialog" aria-modal="true" aria-labelledby="message-modal-title">
         <div class="message-dialog-head">
-            <h2 id="message-modal-title">原消息记录</h2>
+            <h2 id="message-modal-title">详情</h2>
             <button id="message-modal-close" type="button" aria-label="关闭">关闭</button>
         </div>
         <div id="message-modal-body" class="message-dialog-body"></div>
@@ -109,45 +109,17 @@
                 <button id="close-modal-cancel" type="button" aria-label="关闭">关闭</button>
             </div>
             <div class="trade-dialog-body">
-                <div class="close-summary">
-                    <span id="close-symbol">--</span>
-                    <span id="close-side">--</span>
-                    <span id="close-leverage">--</span>
-                    <span id="close-margin-mode">--</span>
-                </div>
-                <div class="close-price-line">
-                    <span>当前价格 <strong id="close-mark-price">--</strong></span>
-                    <span>持仓均价 <strong id="close-open-price">--</strong></span>
-                </div>
-                <fieldset class="close-segment">
-                    <label><input type="radio" name="close-order-type" value="market"> 市价</label>
-                    <label><input type="radio" name="close-order-type" value="limit" checked> 限价</label>
-                </fieldset>
-                <label class="close-field" id="close-price-field">
-                    <span>平仓价格</span>
-                    <input id="close-price" type="number" min="0" step="0.0001" inputmode="decimal">
-                </label>
-                <label class="close-field">
-                    <span id="close-quantity-label">平仓数量</span>
-                    <input id="close-quantity" type="number" min="0" step="0.01" inputmode="decimal">
-                </label>
-                <div class="close-slider-row">
-                    <input id="close-slider" type="range" min="0" max="100" step="1" value="50">
-                    <span id="close-slider-label">50%</span>
-                </div>
-                <div class="close-stats">
-                    <span>持仓量</span><strong id="close-total">--</strong>
-                    <span>已委托</span><strong id="close-delegated">--</strong>
-                    <span>可平</span><strong id="close-available">--</strong>
-                    <span>预计平仓收益</span><strong id="close-pnl">--</strong>
-                    <span>预计平仓手续费</span><strong id="close-fee">--</strong>
-                </div>
+                <div class="close-summary"><span id="close-symbol">--</span><span id="close-side">--</span><span id="close-leverage">--</span><span id="close-margin-mode">--</span></div>
+                <div class="close-price-line"><span>当前价格 <strong id="close-mark-price">--</strong></span><span>持仓均价 <strong id="close-open-price">--</strong></span></div>
+                <fieldset class="close-segment"><label><input type="radio" name="close-order-type" value="market"> 市价</label><label><input type="radio" name="close-order-type" value="limit" checked> 限价</label></fieldset>
+                <label class="close-field" id="close-price-field"><span>平仓价格</span><input id="close-price" type="number" min="0" step="0.0001" inputmode="decimal"></label>
+                <label class="close-field"><span id="close-quantity-label">平仓数量</span><input id="close-quantity" type="number" min="0" step="0.01" inputmode="decimal"></label>
+                <div class="close-slider-row"><input id="close-slider" type="range" min="0" max="100" step="1" value="50"><span id="close-slider-label">50%</span></div>
+                <div class="close-stats"><span>持仓量</span><strong id="close-total">--</strong><span>已委托</span><strong id="close-delegated">--</strong><span>可平</span><strong id="close-available">--</strong><span>预计平仓收益</span><strong id="close-pnl">--</strong><span>预计手续费</span><strong id="close-fee">--</strong></div>
                 <p class="close-preview">预计平仓 <strong id="close-size">--</strong></p>
                 <p id="close-status" class="close-status"></p>
             </div>
-            <div class="trade-dialog-actions">
-                <button id="close-submit" type="submit">确认平仓</button>
-            </div>
+            <div class="trade-dialog-actions"><button id="close-submit" type="submit">确认平仓</button></div>
         </form>
     </section>
 </div>
@@ -155,7 +127,7 @@
 
 {% block scripts %}
 <script src="/static/js/account/labels.js?v=20260524a"></script>
-<script src="/static/js/account/record-modal.js?v=20260524b"></script>
+<script src="/static/js/account/record-modal.js?v=20260528d"></script>
 <script src="/static/js/account/close-modal.js?v=20260525b"></script>
-<script src="/static/js/account/overview.js?v=20260525b"></script>
+<script src="/static/js/account/overview.js?v=20260528d"></script>
 {% endblock %}

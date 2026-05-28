@@ -88,6 +88,27 @@ class ReplayQueryCacheTests(unittest.IsolatedAsyncioTestCase):
                 await service.load_gold_empire(limit=1)
         self.assertEqual(inspect.await_count, 1)
 
+    async def test_symbol_filter_uses_candidate_symbol(self):
+        store = _RecentStoreStub([_gold_row("a"), _gold_row("b")])
+        service = ReplayQueryService(AppConfig(), store, executor=None)
+        with patch("app.services.replay.query_service.build_live_context", return_value={"live_mode": False}):
+            with patch(
+                "app.services.replay.query_service.inspect_log",
+                new=AsyncMock(side_effect=[_item("parsed", False, "XAUUSD"), _item("parsed", False, "BTCUSDT")]),
+            ):
+                result = await service.load_gold_empire(symbol="xau", limit=5)
+        self.assertEqual(result["summary"]["total"], 1)
+        self.assertEqual(result["items"][0]["candidate"]["symbol"], "XAUUSD")
+
+    async def test_date_filters_pass_through_to_store(self):
+        store = _RecentStoreStub([_gold_row("a")])
+        service = ReplayQueryService(AppConfig(), store, executor=None)
+        with patch("app.services.replay.query_service.build_live_context", return_value={"live_mode": False}):
+            with patch("app.services.replay.query_service.inspect_log", new=AsyncMock(return_value=_item("parsed", False))):
+                await service.load_gold_empire(date_from="2026-05-20", date_to="2026-05-21", limit=1)
+        self.assertEqual(store.calls[0]["date_from"], "2026-05-20")
+        self.assertEqual(store.calls[0]["date_to"], "2026-05-21")
+
 
 class _StoreStub:
     def save_candidate(self, candidate):
@@ -126,8 +147,16 @@ class _ReplayStoreStub:
 class _RecentStoreStub:
     def __init__(self, rows):
         self._rows = rows
+        self.calls = []
 
-    def recent_wxpusher(self, limit, author, source_channel):
+    def recent_wxpusher(self, limit, author, source_channel, date_from, date_to):
+        self.calls.append({
+            "limit": limit,
+            "author": author,
+            "source_channel": source_channel,
+            "date_from": date_from,
+            "date_to": date_to,
+        })
         return list(self._rows)
 
 
@@ -167,10 +196,10 @@ def _gold_row(log_id):
     }
 
 
-def _item(status, real_execute):
+def _item(status, real_execute, symbol="XAUUSD"):
     return {
         "log_id": "x",
-        "candidate": {"status": "parsed"},
+        "candidate": {"status": "parsed", "symbol": symbol, "bitget_symbol": symbol},
         "execution": {"status": status},
         "selectable_actions": {
             "real_execute": real_execute,

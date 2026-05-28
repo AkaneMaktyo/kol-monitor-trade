@@ -2,7 +2,7 @@
 {% block title %}仪表盘 - KOL Monitor Trade{% endblock %}
 {% block styles %}
 <link rel="stylesheet" href="/static/css/dashboard.css?v=20260527a">
-<link rel="stylesheet" href="/static/css/dashboard-trading.css?v=20260527a">
+<link rel="stylesheet" href="/static/css/dashboard-trading.css?v=20260528e">
 {% endblock %}
 
 {% block content %}
@@ -50,9 +50,32 @@
         <div class="trading-head">
             <div>
                 <h1>交易决策台</h1>
-                <p>实时信号、仓位更新和订单结果都会直接在这里刷新。</p>
+                <p>这里会实时显示新信号、仓位更新、订单结果，也能直接切换交易开关。</p>
             </div>
             <span id="trading-mode" class="trading-mode-pill">加载中</span>
+        </div>
+        <div id="trading-controls-form" class="trading-controls">
+            <label class="toggle-card" for="trading-enabled">
+                <span class="control-copy">
+                    <strong>交易开关</strong>
+                    <small>关闭后只保留识别和风控，不自动提交。</small>
+                </span>
+                <span class="toggle-shell">
+                    <input id="trading-enabled" name="trading_enabled" type="checkbox" class="toggle-input">
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                </span>
+            </label>
+            <label class="toggle-card" for="trading-auto-demo">
+                <span class="control-copy">
+                    <strong>自动模拟盘</strong>
+                    <small>关闭是演练模式，打开后满足条件会直接发到 Bitget 模拟盘。</small>
+                </span>
+                <span class="toggle-shell">
+                    <input id="trading-auto-demo" name="trading_auto_demo" type="checkbox" class="toggle-input">
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                </span>
+            </label>
+            <p id="trading-controls-feedback" class="control-feedback">切一下就会立即生效，并同步写回本地配置。</p>
         </div>
         <div id="trading-summary" class="trading-summary"></div>
         <div class="signal-board">
@@ -90,9 +113,11 @@
 
 {% block scripts %}
 <script src="/static/js/app-state.js?v=20260521f"></script>
+<script src="/static/js/account/labels.js?v=20260528c"></script>
 <script src="/static/js/status-view.js?v=20260521f"></script>
 <script src="/static/js/log-detail.js?v=20260521f"></script>
 <script src="/static/js/log-view.js?v=20260521f"></script>
-<script src="/static/js/dashboard/signal-board.js?v=20260527a"></script>
-<script src="/static/js/app.js"></script>
+<script src="/static/js/dashboard/signal-board.js?v=20260528c"></script>
+<script src="/static/js/dashboard/trading-controls.js?v=20260528e"></script>
+<script src="/static/js/app.js?v=20260528e"></script>
 {% endblock %}

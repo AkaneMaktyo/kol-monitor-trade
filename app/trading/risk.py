@@ -23,59 +23,56 @@ class RiskBudget:
 
 def describe_risk_budget(config: TradingConfig | None) -> dict:
     budget = _risk_budget(config)
-    return {
-        "account_equity_usdt": budget.account_equity_usdt,
-        "risk_percent": budget.risk_percent,
-        "quote_risk_usdt": budget.quote_risk_usdt,
-    }
+    return {"account_equity_usdt": budget.account_equity_usdt, "risk_percent": budget.risk_percent, "quote_risk_usdt": budget.quote_risk_usdt}
 
 
-def build_dry_run_intent(
-    candidate: SignalCandidate,
-    message_time: str,
-    config: TradingConfig | None = None,
-    now: datetime | None = None,
-    ignore_stale: bool = False,
-    market_price: float = 0.0,
-) -> TradeIntent | None:
+def build_dry_run_intent(candidate: SignalCandidate, message_time: str, config: TradingConfig | None = None, now: datetime | None = None, ignore_stale: bool = False, market_price: float = 0.0) -> TradeIntent | None:
+    intents = build_dry_run_intents(candidate, message_time, config, now, ignore_stale, market_price)
+    return intents[0] if intents else None
+
+
+def build_dry_run_intents(candidate: SignalCandidate, message_time: str, config: TradingConfig | None = None, now: datetime | None = None, ignore_stale: bool = False, market_price: float = 0.0) -> list[TradeIntent]:
     if candidate.category != "new_signal":
-        return None
-    entry = _entry_price(candidate, market_price)
+        return []
+    entries = _entries(candidate, market_price)
     budget = _risk_budget(config)
-    sizing_stop = _sizing_stop(candidate, entry, budget)
-    reasons = _base_reasons(candidate, entry, sizing_stop, budget)
-    max_age = config.max_signal_age_seconds if config else 900
-    stale = "" if ignore_stale else _stale_reason(message_time, now or datetime.now(timezone.utc), max_age)
+    sizing_entry = _sizing_entry(entries)
+    sizing_stop = _sizing_stop(candidate, sizing_entry, budget)
+    reasons = _base_reasons(candidate, sizing_entry, sizing_stop, budget)
+    stale = "" if ignore_stale else _stale_reason(message_time, now or datetime.now(timezone.utc), config.max_signal_age_seconds if config else 900)
     if stale:
         reasons.append(stale)
-    quantity = _quantity(entry, sizing_stop, budget.quote_risk_usdt)
+    total_qty = _quantity(sizing_entry, sizing_stop, budget.quote_risk_usdt)
+    quantities = _split_quantities(total_qty, len(entries))
+    if len(entries) > 1 and any(qty < MIN_QTY for qty in quantities):
+        reasons.append("quantity_below_min")
     status = "ready" if not reasons else "blocked"
-    return TradeIntent(
-        source_log_id=candidate.source_log_id,
-        exchange="bitget",
-        symbol=candidate.bitget_symbol,
-        side=candidate.side,
-        order_type=candidate.entry_order_type,
-        entry_price=entry,
-        quantity=quantity,
-        stop_loss=candidate.stop_loss or 0.0,
-        take_profits=candidate.take_profits,
-        dry_run=True,
-        status=status,
-        reasons=reasons,
-        quote_risk_usdt=budget.quote_risk_usdt if quantity >= MIN_QTY else 0.0,
-        notional_usdt=round(entry * quantity, 2) if entry else 0.0,
-        account_equity_usdt=budget.account_equity_usdt,
-        risk_percent=budget.risk_percent,
-    )
+    return [
+        TradeIntent(
+            source_log_id=candidate.source_log_id,
+            exchange="bitget",
+            symbol=candidate.bitget_symbol,
+            side=candidate.side,
+            order_type=candidate.entry_order_type,
+            entry_price=entry,
+            quantity=qty,
+            stop_loss=candidate.stop_loss or 0.0,
+            take_profits=candidate.take_profits,
+            dry_run=True,
+            status=status,
+            reasons=reasons,
+            quote_risk_usdt=_layer_risk(entry, candidate.stop_loss or sizing_stop, qty),
+            notional_usdt=round(entry * qty, 2) if entry else 0.0,
+            account_equity_usdt=budget.account_equity_usdt,
+            risk_percent=budget.risk_percent,
+            layer_index=index,
+            layer_count=len(entries),
+        )
+        for index, (entry, qty) in enumerate(zip(entries, quantities))
+    ]
 
 
-def _base_reasons(
-    candidate: SignalCandidate,
-    entry: float,
-    sizing_stop: float,
-    budget: RiskBudget,
-) -> list[str]:
+def _base_reasons(candidate: SignalCandidate, entry: float, sizing_stop: float, budget: RiskBudget) -> list[str]:
     reasons = []
     if candidate.confidence < 0.9:
         reasons.append("low_confidence")
@@ -89,7 +86,7 @@ def _base_reasons(
     reasons.extend(_risk_reasons(budget))
     if entry and sizing_stop and _quantity(entry, sizing_stop, budget.quote_risk_usdt) < MIN_QTY:
         reasons.append("quantity_below_min")
-    return reasons
+    return _unique(reasons)
 
 
 def _risk_budget(config: TradingConfig | None) -> RiskBudget:
@@ -99,11 +96,7 @@ def _risk_budget(config: TradingConfig | None) -> RiskBudget:
     cap = config.max_order_risk_usdt if config else 0.0
     if cap > 0:
         risk_usdt = min(risk_usdt, cap)
-    return RiskBudget(
-        account_equity_usdt=round(equity, 8),
-        risk_percent=round(percent, 4),
-        quote_risk_usdt=round(risk_usdt, 8),
-    )
+    return RiskBudget(round(equity, 8), round(percent, 4), round(risk_usdt, 8))
 
 
 def _risk_reasons(budget: RiskBudget) -> list[str]:
@@ -118,19 +111,14 @@ def _risk_reasons(budget: RiskBudget) -> list[str]:
 
 
 def _wrong_stop_side(side: str, entry: float, stop: float) -> bool:
-    if side == "long":
-        return stop >= entry
-    if side == "short":
-        return stop <= entry
-    return True
+    return stop >= entry if side == "long" else stop <= entry if side == "short" else True
 
 
 def _quantity(entry: float, stop: float, risk_usdt: float) -> float:
     distance = abs(entry - stop)
     if distance <= 0:
         return 0.0
-    raw = risk_usdt / distance
-    return round(floor(raw / QTY_STEP) * QTY_STEP, 2)
+    return round(floor((risk_usdt / distance) / QTY_STEP) * QTY_STEP, 2)
 
 
 def _stale_reason(message_time: str, now: datetime, max_age_seconds: int) -> str:
@@ -138,21 +126,17 @@ def _stale_reason(message_time: str, now: datetime, max_age_seconds: int) -> str
         parsed = datetime.strptime(message_time, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
     except ValueError:
         return "unknown_signal_time"
-    age = (now - parsed).total_seconds()
-    return "historical_signal_stale" if age > max_age_seconds else ""
+    return "historical_signal_stale" if (now - parsed).total_seconds() > max_age_seconds else ""
 
 
-def _entry_price(candidate: SignalCandidate, market_price: float) -> float:
+def _entries(candidate: SignalCandidate, market_price: float) -> list[float]:
     if candidate.entry_numbers:
-        return candidate.entry_numbers[0]
-    if candidate.entry_order_type == "market":
-        return max(market_price, 0.0)
-    return 0.0
+        return candidate.entry_numbers
+    return [max(market_price, 0.0)] if candidate.entry_order_type == "market" else [0.0]
 
 
 def _required_field_reasons(candidate: SignalCandidate) -> list[str]:
-    allowed = {"take_profit", "stop_loss"}
-    return [f"missing_{item}" for item in candidate.missing_fields if item not in allowed]
+    return [f"missing_{item}" for item in candidate.missing_fields if item not in {"take_profit", "stop_loss"}]
 
 
 def _sizing_stop(candidate: SignalCandidate, entry: float, budget: RiskBudget) -> float:
@@ -164,3 +148,31 @@ def _sizing_stop(candidate: SignalCandidate, entry: float, budget: RiskBudget) -
     if distance <= 0:
         return 0.0
     return entry - distance if candidate.side == "long" else entry + distance
+
+
+def _sizing_entry(entries: list[float]) -> float:
+    valid = [entry for entry in entries if entry > 0]
+    return round(sum(valid) / len(valid), 8) if valid else 0.0
+
+
+def _split_quantities(total_qty: float, count: int) -> list[float]:
+    if count <= 1:
+        return [round(total_qty, 2)]
+    steps = int(floor(total_qty / QTY_STEP))
+    base, extra = divmod(steps, count)
+    values = [base * QTY_STEP for _ in range(count)]
+    for index in range(extra):
+        values[index] = round(values[index] + QTY_STEP, 2)
+    return [round(value, 2) for value in values]
+
+
+def _layer_risk(entry: float, stop: float, quantity: float) -> float:
+    return round(abs(float(entry or 0) - float(stop or 0)) * float(quantity or 0), 8)
+
+
+def _unique(items: list[str]) -> list[str]:
+    result = []
+    for item in items:
+        if item and item not in result:
+            result.append(item)
+    return result

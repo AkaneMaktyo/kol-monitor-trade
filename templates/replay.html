@@ -18,23 +18,26 @@
     <form id="replay-filter-form" class="panel replay-filters">
         <label><span>作者</span><input id="filter-author" name="author" type="text" maxlength="120"></label>
         <label><span>来源频道</span><input id="filter-source-channel" name="source_channel" type="text" maxlength="120"></label>
+        <label><span>开始日期</span><input id="filter-date-from" name="date_from" type="date"></label>
+        <label><span>结束日期</span><input id="filter-date-to" name="date_to" type="date"></label>
+        <label><span>品种</span><input id="filter-symbol" name="symbol" type="text" maxlength="40" placeholder="如 XAUUSD / BTC"></label>
         <label>
             <span>解析状态</span>
             <select id="filter-candidate-status" name="candidate_status">
                 <option value="">全部</option>
-                <option value="parsed">parsed</option>
-                <option value="needs_review">needs_review</option>
+                <option value="parsed">已解析</option>
+                <option value="needs_review">待复核</option>
             </select>
         </label>
         <label>
             <span>执行状态</span>
             <select id="filter-execution-status" name="execution_status">
                 <option value="">全部</option>
-                <option value="ready">ready</option>
-                <option value="blocked">blocked</option>
-                <option value="dry_run">dry_run</option>
-                <option value="submitted">submitted</option>
-                <option value="failed">failed</option>
+                <option value="ready">可执行</option>
+                <option value="blocked">已拦截</option>
+                <option value="dry_run">模拟执行</option>
+                <option value="submitted">已提交</option>
+                <option value="failed">执行失败</option>
             </select>
         </label>
         <label><span>数量</span><input id="filter-limit" name="limit" type="number" min="1" max="120" value="120"></label>
@@ -119,8 +122,9 @@
 
 {% block scripts %}
 <script src="/static/js/app-state.js?v=20260521f"></script>
-<script src="/static/js/replay/state.js?v=20260527a"></script>
+<script src="/static/js/account/labels.js?v=20260528c"></script>
+<script src="/static/js/replay/state.js?v=20260528a"></script>
 <script src="/static/js/replay/confirm-modal.js?v=20260527a"></script>
-<script src="/static/js/replay/render.js?v=20260527a"></script>
-<script src="/static/js/replay/page.js?v=20260527a"></script>
+<script src="/static/js/replay/render.js?v=20260528c"></script>
+<script src="/static/js/replay/page.js?v=20260528c"></script>
 {% endblock %}

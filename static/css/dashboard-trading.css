@@ -35,6 +35,77 @@
 .signal-board { display: grid; gap: 10px; }
 .trading-summary { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .signal-board { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.trading-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    align-items: stretch;
+}
+
+.toggle-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--panel-soft);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.control-copy strong,
+.control-copy small { display: block; }
+.control-copy small { margin-top: 3px; color: var(--muted); line-height: 1.45; }
+
+.toggle-shell { position: relative; display: inline-flex; }
+.toggle-input {
+    position: absolute;
+    opacity: 0;
+    inset: 0;
+    cursor: pointer;
+}
+
+.toggle-slider {
+    position: relative;
+    width: 48px;
+    height: 28px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--border);
+    transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.toggle-slider::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.18s ease;
+}
+
+.toggle-input:checked + .toggle-slider {
+    background: rgba(38, 194, 129, 0.24);
+    border-color: rgba(38, 194, 129, 0.5);
+}
+
+.toggle-input:checked + .toggle-slider::after { transform: translateX(20px); }
+.toggle-input:disabled + .toggle-slider { opacity: 0.65; }
+.control-feedback {
+    margin: 0;
+    padding: 0 4px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+    align-self: center;
+}
+.control-feedback.success { color: var(--green); }
+.control-feedback.warn { color: var(--yellow); }
+.control-feedback.error { color: var(--red); }
 
 .summary-box,
 .signal-lane {
@@ -84,6 +155,7 @@
 }
 
 @media (max-width: 720px) {
+    .trading-controls { grid-template-columns: 1fr; }
     .trading-summary,
     .signal-board { grid-template-columns: 1fr; }
 }

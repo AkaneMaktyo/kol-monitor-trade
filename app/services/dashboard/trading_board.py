@@ -40,7 +40,7 @@ class TradingBoardService:
             "trading_enabled": trading.enabled,
             "execution_mode": trading.execution_mode,
             "credential_status": "ready" if credential["ok"] else "missing",
-            "credential_message": credential["error"] or "已找到 Bitget demo 凭证",
+            "credential_message": credential["error"] or "已找到 Bitget 模拟盘凭证",
             "risk_budget": budget,
             "max_signal_age_seconds": trading.max_signal_age_seconds,
             "product_type": trading.product_type,
