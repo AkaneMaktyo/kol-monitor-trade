@@ -28,6 +28,7 @@ from app.services.messages import MessageService
 from app.services.wxpusher import WxPusherMonitor
 from app.telegram_monitor import TelegramMonitor
 from app.notifications import PositionWatcher
+from app.services.wxpusher.shared import SharedWxPusherRuntime
 from app.trading.execution import TradingExecutor
 from app.websocket_manager import ws_manager
 
@@ -82,6 +83,8 @@ async def lifespan(app: FastAPI):
     trading_store.initialize()
     account_store = AccountStore(config.mysql)
     account_store.initialize()
+    shared_wxpusher = SharedWxPusherRuntime(config)
+    shared_wxpusher.initialize()
     message_service = MessageService(system_state, store, ws_manager)
     await message_service.load_recent()
     trading_executor = TradingExecutor(config, trading_store)
@@ -97,6 +100,7 @@ async def lifespan(app: FastAPI):
     app.state.llm_store = llm_store
     app.state.trading_store = trading_store
     app.state.account_store = account_store
+    app.state.shared_wxpusher = shared_wxpusher
     app.state.trading_executor = trading_executor
     app.state.trading_controls_service = trading_controls_service
     app.state.message_service = message_service
@@ -104,7 +108,7 @@ async def lifespan(app: FastAPI):
     forwarder = MessageForwarder(config)
     telegram_monitor = TelegramMonitor(config, system_state.telegram)
     discord_monitor = DiscordMonitor(config, system_state.discord)
-    wxpusher_monitor = WxPusherMonitor(config, system_state.wxpusher)
+    wxpusher_monitor = WxPusherMonitor(config, system_state.wxpusher, shared_wxpusher)
     app.state.discord_monitor = discord_monitor
     app.state.wxpusher_monitor = wxpusher_monitor
     forwarder.set_telegram(telegram_monitor)

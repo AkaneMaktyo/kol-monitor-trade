@@ -67,6 +67,9 @@ class _ExchangeStub:
         self.calls += 1
         return {"exchange": "bitget", "status": "submitted", "client_oid": client_oid, "order_id": f"oid_{self.calls}"}
 
+    def place_position_tpsl(self, intent, client_oid):
+        return {"exchange": "bitget", "status": "submitted", "client_oid": client_oid, "order_id": ""}
+
 
 def _candidate():
     return SignalCandidate(

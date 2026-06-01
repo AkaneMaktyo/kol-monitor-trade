@@ -78,6 +78,7 @@ class WxPusherConfig:
     device_uuid: str = field(default_factory=lambda: _env("WXPUSHER_DEVICE_UUID"))
     platform: str = field(default_factory=lambda: _env("WXPUSHER_PLATFORM", "Chrome-Windows"))
     version: str = field(default_factory=lambda: _env("WXPUSHER_VERSION", "1.1.1"))
+    shared_database: str = field(default_factory=lambda: _env("WXPUSHER_SHARED_DATABASE", "market_opinion_tracker"))
     poll_interval_seconds: int = field(
         default_factory=lambda: max(30, _env_int("WXPUSHER_POLL_INTERVAL_SECONDS", 60))
     )

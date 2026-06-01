@@ -9,26 +9,24 @@
 
     document.addEventListener("click", async (event) => {
         const message = event.target.closest(".message-link");
-        if (message) return open(`/api/account/message-detail?log_id=${encodeURIComponent(message.dataset.logId || "")}`, "正在打开消息...");
+        if (message) return open(`/api/account/message-detail?log_id=${encodeURIComponent(message.dataset.logId || "")}`, "正在打开消息...", "message");
         const history = event.target.closest(".history-link");
-        if (history) return open(historyUrl(history.dataset), "正在整理生命周期...");
+        if (history) return open(historyUrl(history.dataset), "正在整理完整链路...", "history");
     });
 
     close.addEventListener("click", hide);
     modal.addEventListener("click", (event) => event.target === modal && hide());
     document.addEventListener("keydown", (event) => event.key === "Escape" && !modal.hidden && hide());
 
-    async function open(url, loadingText) {
-        show("加载中", `<div class="message-loading">${escapeHtml(loadingText)}</div>`);
+    async function open(url, loadingText, mode) {
+        show("加载中", `<div class="message-loading">${escapeHtml(loadingText)}</div>`, mode);
         try {
             const response = await fetch(url);
             const data = await response.json();
             if (!response.ok) throw new Error(data.detail || "详情加载失败");
-            title.textContent = data.title || "详情";
-            body.innerHTML = data.html || "";
-            modal.hidden = false;
+            show(data.title || "详情", data.html || "", mode);
         } catch (error) {
-            show("加载失败", `<div class="account-error">${escapeHtml(error.message)}</div>`);
+            show("加载失败", `<div class="account-error">${escapeHtml(error.message)}</div>`, mode);
         }
     }
 
@@ -45,14 +43,16 @@
         return `/api/account/history-detail?${query.toString()}`;
     }
 
-    function show(nextTitle, html) {
+    function show(nextTitle, html, mode) {
         title.textContent = nextTitle;
         body.innerHTML = html;
+        modal.dataset.mode = mode || "message";
         modal.hidden = false;
     }
 
     function hide() {
         modal.hidden = true;
+        delete modal.dataset.mode;
     }
 
     function escapeHtml(value) {

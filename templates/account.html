@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}账户 - KOL Monitor Trade{% endblock %}
 {% block styles %}
-<link rel="stylesheet" href="/static/css/account.css?v=20260524c">
+<link rel="stylesheet" href="/static/css/account.css?v=20260529c">
 <link rel="stylesheet" href="/static/css/account-close.css?v=20260525c">
 {% endblock %}
 
@@ -39,7 +39,7 @@
             <div class="section-title"><h2>当前持仓</h2></div>
             <div class="table-wrap">
                 <table>
-                    <thead><tr><th>合约</th><th>方向</th><th>数量</th><th>均价</th><th>标记价</th><th>盈亏</th><th>操作</th></tr></thead>
+                    <thead><tr><th>合约</th><th>方向</th><th>数量</th><th>均价</th><th>标记价</th><th>止盈</th><th>止损</th><th>盈亏</th><th>操作</th></tr></thead>
                     <tbody id="position-rows"></tbody>
                 </table>
             </div>
@@ -127,7 +127,7 @@
 
 {% block scripts %}
 <script src="/static/js/account/labels.js?v=20260524a"></script>
-<script src="/static/js/account/record-modal.js?v=20260528d"></script>
+<script src="/static/js/account/record-modal.js?v=20260529a"></script>
 <script src="/static/js/account/close-modal.js?v=20260525b"></script>
-<script src="/static/js/account/overview.js?v=20260528d"></script>
+<script src="/static/js/account/overview.js?v=20260529a"></script>
 {% endblock %}

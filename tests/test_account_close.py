@@ -40,6 +40,34 @@ class ClosePositionRouteTests(unittest.TestCase):
         self.assertEqual(response.json()["detail"], "boom")
 
 
+class BitgetPlaceTpslTests(unittest.TestCase):
+    def test_place_position_tpsl_includes_trigger_prices(self):
+        body = self._tpsl(stop_loss=Decimal("4508.11"), take_profits=[Decimal("4548.11"), Decimal("4560")])
+        self.assertEqual(body["stopSurplusTriggerPrice"], "4548.11")
+        self.assertEqual(body["stopLossTriggerPrice"], "4508.11")
+        self.assertEqual(body["holdSide"], "short")
+
+    def test_place_position_tpsl_skips_empty_values(self):
+        body = self._tpsl(stop_loss=Decimal("0"), take_profits=[])
+        self.assertEqual(body, {})
+
+    def _tpsl(self, stop_loss, take_profits):
+        exchange = BitgetDemoExchange(AppConfig())
+        intent = type("Intent", (), {
+            "symbol": "XAUUSDT",
+            "side": "short",
+            "order_type": "market",
+            "entry_price": Decimal("4575"),
+            "quantity": Decimal("0.27"),
+            "stop_loss": stop_loss,
+            "take_profits": take_profits,
+        })()
+        with patch.object(exchange, "_credential", return_value={"api_key": "k", "api_secret": "s", "passphrase": "p"}):
+            with patch.object(exchange, "_request", return_value={"code": "00000", "data": []}) as request:
+                exchange.place_position_tpsl(intent, "oid_2")
+        return request.call_args.args[2] if request.called else {}
+
+
 def _payload() -> dict:
     return {
         "symbol": "BTCUSDT",

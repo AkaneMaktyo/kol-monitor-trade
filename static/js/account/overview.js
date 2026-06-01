@@ -50,7 +50,7 @@
         refs.updated.textContent = `最后刷新 ${new Date().toLocaleTimeString()}`;
         renderMetrics(data.summary || {});
         renderChart(data.curve || []);
-        renderRows(refs.positionRows, data.positions || [], positionRow, 7);
+        renderRows(refs.positionRows, data.positions || [], positionRow, 9);
         renderRows(refs.historyRows, data.history_positions || [], historyRow, 10);
         renderRows(refs.pendingRows, data.pending_orders || [], pendingRow, 6);
         renderRows(refs.tradeRows, data.trade_orders || [], tradeRow, 6);
@@ -101,7 +101,7 @@
     function positionRow(row) {
         const side = row.holdSide || row.posSide || row.side;
         const total = row.total || 0;
-        return `<tr><td>${esc(row.symbol)}</td><td>${esc(labels.positionSide(side))}</td><td>${num(total)}</td><td>${num(row.openPriceAvg)}</td><td>${num(row.markPrice)}</td><td class="${signClass(row.unrealizedPL)}">${signed(row.unrealizedPL)}</td><td><button class="close-position-link" type="button" data-symbol="${esc(row.symbol)}" data-hold-side="${esc(side)}" data-total="${esc(total)}" data-available="${esc(row.available || total)}" data-delegated="${esc(row.openDelegateSize || row.locked || 0)}" data-leverage="${esc(row.leverage)}" data-margin-mode="${esc(row.marginMode)}" data-margin-coin="${esc(row.marginCoin || "USDT")}" data-mark-price="${esc(row.markPrice)}" data-open-price="${esc(row.openPriceAvg)}">平仓</button></td></tr>`;
+        return `<tr><td>${esc(row.symbol)}</td><td>${esc(labels.positionSide(side))}</td><td>${num(total)}</td><td>${num(row.openPriceAvg)}</td><td>${num(row.markPrice)}</td><td>${optionalNum(row.takeProfit)}</td><td>${optionalNum(row.stopLoss)}</td><td class="${signClass(row.unrealizedPL)}">${signed(row.unrealizedPL)}</td><td><button class="close-position-link" type="button" data-symbol="${esc(row.symbol)}" data-hold-side="${esc(side)}" data-total="${esc(total)}" data-available="${esc(row.available || total)}" data-delegated="${esc(row.openDelegateSize || row.locked || 0)}" data-leverage="${esc(row.leverage)}" data-margin-mode="${esc(row.marginMode)}" data-margin-coin="${esc(row.marginCoin || "USDT")}" data-mark-price="${esc(row.markPrice)}" data-open-price="${esc(row.openPriceAvg)}">平仓</button></td></tr>`;
     }
 
     function pendingRow(row) {
@@ -135,6 +135,14 @@
 
     function chartSvg(line, fill, min, max) {
         return `<svg viewBox="0 0 1000 260" preserveAspectRatio="none"><line class="chart-grid" x1="36" x2="964" y1="52" y2="52"></line><line class="chart-grid" x1="36" x2="964" y1="140" y2="140"></line><line class="chart-grid" x1="36" x2="964" y1="228" y2="228"></line><polygon class="chart-fill" points="${fill}"></polygon><polyline class="chart-line" points="${line}"></polyline><text class="chart-label" x="44" y="46">${money(max)}</text><text class="chart-label" x="44" y="244">${money(min)}</text></svg>`;
+    }
+
+    function optionalNum(value) {
+        return hasValue(value) ? num(value) : '<span class="muted">--</span>';
+    }
+
+    function hasValue(value) {
+        return value !== null && value !== undefined && String(value).trim() !== "";
     }
 
     const money = (value, coin) => `${num(value)}${coin ? ` ${coin}` : ""}`;

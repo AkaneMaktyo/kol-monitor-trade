@@ -134,6 +134,9 @@ class _ExchangeStub:
     def place_order(self, intent, client_oid):
         return {"exchange": "bitget", "status": "submitted", "client_oid": client_oid, "order_id": "oid_1"}
 
+    def place_position_tpsl(self, intent, client_oid):
+        return {"exchange": "bitget", "status": "submitted", "client_oid": client_oid, "order_id": ""}
+
 
 class _ReplayStoreStub:
     def __init__(self, rows):

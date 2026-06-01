@@ -6,7 +6,7 @@ import time
 import httpx
 
 from app.config import AppConfig
-from app.exchanges.bitget_support import as_float, num, order_result, query as build_query, signature
+from app.exchanges.bitget_support import as_float, num, order_result, position_tpsl_body, query as build_query, signature, tpsl_result
 from app.persistence import connect_mysql
 from app.trading.models import TradeIntent
 
@@ -40,6 +40,18 @@ class BitgetDemoExchange:
             body["force"] = "gtc"
         response = self._request("POST", "/api/v2/mix/order/place-order", body, credential)
         return order_result(response, client_oid)
+
+    def place_position_tpsl(self, intent: TradeIntent, client_oid: str) -> dict | None:
+        body = position_tpsl_body(
+            intent,
+            self._config.trading.product_type,
+            self._config.trading.margin_coin,
+            client_oid,
+        )
+        if not body:
+            return None
+        response = self._request("POST", "/api/v2/mix/order/place-pos-tpsl", body)
+        return tpsl_result(response, client_oid)
 
     def close_position(
         self,

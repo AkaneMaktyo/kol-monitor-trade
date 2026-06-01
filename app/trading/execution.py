@@ -1,5 +1,6 @@
 """Trading execution orchestration."""
 
+import time
 import uuid
 
 from app.config import AppConfig
@@ -73,7 +74,10 @@ class TradingExecutor:
     def _submit(self, intent, intent_id: str) -> dict:
         client_oid = self._client_oid(intent_id)
         try:
-            return self._bitget.place_order(intent, client_oid)
+            order = self._bitget.place_order(intent, client_oid)
+            if order.get("status") == "submitted":
+                order["tpsl"] = self._sync_tpsl(intent, client_oid)
+            return order
         except Exception as exc:
             return {"exchange": "bitget", "status": "failed", "client_oid": client_oid, "order_id": "", "error": str(exc)}
 
@@ -93,6 +97,15 @@ class TradingExecutor:
         intent.origin = audit.get("origin", "")
         intent.origin_log_id = audit.get("origin_log_id", "")
         intent.triggered_at = audit.get("triggered_at", "")
+
+    def _sync_tpsl(self, intent, client_oid: str) -> dict | None:
+        result = None
+        for _ in range(3):
+            result = self._bitget.place_position_tpsl(intent, client_oid)
+            if not result or result.get("status") == "submitted":
+                return result
+            time.sleep(1)
+        return result
 
 
 def _primary_order(orders: list[dict]) -> dict | None:

@@ -13,9 +13,7 @@ class HistoryLifecycleMatchTests(unittest.TestCase):
             {"signal_id": "a", "price": 4528, "quantity": 0.35, "order_status": "submitted"},
             {"signal_id": "b", "price": 4575, "quantity": 0.27, "order_status": "dry_run"},
         ]
-
         matched = _pick_candidates(rows, target_price=4540.78, target_size=0.35)
-
         self.assertEqual([row["signal_id"] for row in matched], ["a"])
 
     def test_pick_candidates_can_merge_multiple_open_legs(self):
@@ -23,9 +21,7 @@ class HistoryLifecycleMatchTests(unittest.TestCase):
             {"signal_id": "a", "price": 4510, "quantity": 0.17, "order_status": "submitted"},
             {"signal_id": "b", "price": 4510, "quantity": 0.17, "order_status": "dry_run"},
         ]
-
         matched = _pick_candidates(rows, target_price=4510, target_size=0.34)
-
         self.assertEqual({row["signal_id"] for row in matched}, {"a", "b"})
 
 
@@ -34,7 +30,6 @@ class HistoryDetailRouteTests(unittest.TestCase):
         app = FastAPI()
         app.state.account_store = _FakeStore()
         app.include_router(account.router)
-
         response = TestClient(app).get(
             "/api/account/history-detail",
             params={
@@ -47,12 +42,16 @@ class HistoryDetailRouteTests(unittest.TestCase):
                 "net_profit": -11.57,
             },
         )
-
         self.assertEqual(response.status_code, 200)
         body = response.json()
         self.assertIn("生命周期", body["title"])
+        self.assertIn("history-summary-grid", body["html"])
+        self.assertIn("history-timeline", body["html"])
+        self.assertIn("查看原始内容", body["html"])
         self.assertIn("开仓信号", body["html"])
         self.assertIn("仓位更新", body["html"])
+        self.assertIn("止盈", body["html"])
+        self.assertIn("止损", body["html"])
 
 
 class _FakeStore:
@@ -74,7 +73,7 @@ class _FakeStore:
                 "intent_status": "ready",
                 "order_status": "submitted",
                 "exchange_order_id": "oid_1",
-                "parsed_json": {"evidence_text": "黄金空单"},
+                "parsed_json": {"evidence_text": "黄金空单", "take_profits": [4514, 4490], "stop_loss": 4542},
             }],
             "updates": [{
                 "source_log_id": "log_close",
