@@ -13,6 +13,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate deploy secrets
+        env:
+          SSH_HOST: ${{ secrets.KMT_SSH_HOST }}
+          SSH_PORT: ${{ secrets.KMT_SSH_PORT }}
+          SSH_USER: ${{ secrets.KMT_SSH_USER }}
+          SSH_PASSWORD: ${{ secrets.KMT_SSH_PASSWORD }}
+        run: |
+          missing=()
+          for name in SSH_HOST SSH_PORT SSH_USER SSH_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              missing+=("$name")
+            fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "Missing deploy secrets: ${missing[*]}"
+            exit 1
+          fi
+
       - name: Pack release
         run: |
           RELEASE_ARCHIVE="$RUNNER_TEMP/app.tar.gz"
@@ -26,7 +44,7 @@ jobs:
             --exclude='data' \
             --exclude='logs' \
             -czf "$RELEASE_ARCHIVE" .
-          cp "$RELEASE_ARCHIVE" app.tar.gz
+          echo "RELEASE_ARCHIVE=$RELEASE_ARCHIVE" >> "$GITHUB_ENV"
 
       - name: Upload and restart
         env:
@@ -35,15 +53,11 @@ jobs:
           SSH_USER: ${{ secrets.KMT_SSH_USER }}
           SSH_PASSWORD: ${{ secrets.KMT_SSH_PASSWORD }}
         run: |
-          if [ -z "$SSH_HOST" ] || [ -z "$SSH_PORT" ] || [ -z "$SSH_USER" ] || [ -z "$SSH_PASSWORD" ]; then
-            echo "Deployment secrets are not configured; skipping deploy."
-            exit 0
-          fi
           sudo apt-get update
           sudo apt-get install -y sshpass
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
             "mkdir -p /root/kol-monitor-deploy"
           sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no -P "$SSH_PORT" \
-            app.tar.gz deploy/apply-release.sh "$SSH_USER@$SSH_HOST:/root/kol-monitor-deploy/"
+            "$RELEASE_ARCHIVE" deploy/apply-release.sh "$SSH_USER@$SSH_HOST:/root/kol-monitor-deploy/"
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
             "bash /root/kol-monitor-deploy/apply-release.sh /root/kol-monitor-deploy/app.tar.gz $GITHUB_SHA"
