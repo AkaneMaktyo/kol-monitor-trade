@@ -5,16 +5,16 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.config import AppConfig
 from app.routes import trading_controls
 from app.services.dashboard.trading_controls import TradingControlsService
+from support import test_config
 
 
 class TradingControlsServiceTests(unittest.TestCase):
     def test_update_writes_env_and_mutates_config(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             env_path = Path(temp_dir) / ".env"
-            config = AppConfig()
+            config = test_config()
             service = TradingControlsService(config, env_path)
 
             result = service.update(enabled=True, execution_mode="auto_demo")
@@ -27,7 +27,7 @@ class TradingControlsServiceTests(unittest.TestCase):
             self.assertIn("TRADING_EXECUTION_MODE=auto_demo", content)
 
     def test_invalid_mode_raises_error(self):
-        service = TradingControlsService(AppConfig(), Path(tempfile.gettempdir()) / "x.env")
+        service = TradingControlsService(test_config(), Path(tempfile.gettempdir()) / "x.env")
         with self.assertRaisesRegex(ValueError, "不支持的执行方式"):
             service.update(enabled=True, execution_mode="live")
 
@@ -36,7 +36,7 @@ class TradingControlsRouteTests(unittest.TestCase):
     def test_put_updates_running_config(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             env_path = Path(temp_dir) / ".env"
-            config = AppConfig()
+            config = test_config()
             app = FastAPI()
             app.state.config = config
             app.state.trading_controls_service = TradingControlsService(config, env_path)
@@ -54,7 +54,7 @@ class TradingControlsRouteTests(unittest.TestCase):
 
     def test_get_returns_current_snapshot(self):
         app = FastAPI()
-        config = AppConfig()
+        config = test_config()
         config.trading.enabled = True
         config.trading.execution_mode = "auto_demo"
         app.state.config = config

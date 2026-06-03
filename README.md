@@ -1,6 +1,6 @@
 # KOL Monitor Trade
 
-实时接入 Telegram、Discord 和 WxPusher 消息，并在本系统仪表盘查看连接状态、实时日志和运行统计。消息会先进入统一事件流并写入本地 MySQL；如配置了 `FORWARD_RULES`，再执行跨平台转发。
+实时接入 Telegram、Discord 和 WxPusher 消息，并在本系统仪表盘查看连接状态、实时日志和运行统计。消息会先进入统一事件流并写入线上 MySQL；如配置了 `FORWARD_RULES`，再执行跨平台转发。
 
 ## 启动
 
@@ -13,16 +13,16 @@ python -m app.telegram_monitor login
 python run.py
 ```
 
-启动前请确认本机 MySQL 已运行，`.env` 中的 `MYSQL_USER` 和 `MYSQL_PASSWORD` 有创建数据库和表的权限。系统启动时会自动创建 `MYSQL_DATABASE` 和 `log_entries` 表。
+启动前请确认 `.env` 已指向线上 MySQL。线上 MySQL 不开放公网，本机开发时先建立 SSH 隧道，再通过本地隧道端口访问线上库。系统启动时会自动创建 `MYSQL_DATABASE` 和 `log_entries` 表。
 首次使用 Telegram 用户账号监听时，需要先执行一次登录命令，按提示输入手机号、验证码和两步验证密码。登录成功后会在 `TELEGRAM_SESSION_PATH` 保存本地会话，后续启动无需重复登录。
 
 打开 `http://localhost:8000` 查看仪表盘。
 
 ## 配置
 
-- `MYSQL_HOST` / `MYSQL_PORT`：本地 MySQL 地址，默认 `127.0.0.1:3306`。
-- `MYSQL_USER` / `MYSQL_PASSWORD`：MySQL 登录用户和密码。
-- `MYSQL_DATABASE`：日志库名，默认 `kol_monitor_trade`。
+- `MYSQL_HOST` / `MYSQL_PORT`：线上 MySQL 连接地址；本机开发通常是 SSH 隧道 `127.0.0.1:13306`。
+- `MYSQL_USER` / `MYSQL_PASSWORD`：线上 MySQL 登录用户和密码，必须显式配置。
+- `MYSQL_DATABASE`：日志库名，必须显式配置为线上库名，例如 `kol_monitor_trade`。
 - `TELEGRAM_API_ID` / `TELEGRAM_API_HASH`：Telegram 用户客户端 API 凭证。
 - `TELEGRAM_SESSION_PATH`：本地用户会话文件路径，默认 `data/telegram_user`。
 - `TELEGRAM_PROXY_URL`：可选，Telegram 连接代理，例如 `socks5://127.0.0.1:7897`。

@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import patch
 
-from app.config import MySQLConfig
 from app.persistence import close_mysql_pool, connect_mysql
+from support import test_mysql_config
 
 
 class MysqlPoolTests(unittest.TestCase):
@@ -13,7 +13,7 @@ class MysqlPoolTests(unittest.TestCase):
         close_mysql_pool()
 
     def test_same_database_reuses_connection(self):
-        config = MySQLConfig(password="secret", database="kol_monitor_trade")
+        config = _mysql_config()
         created = []
         with patch("app.persistence.pymysql.connect", side_effect=lambda **kw: _FakeConn(created, kw)):
             with connect_mysql(config) as first:
@@ -24,7 +24,7 @@ class MysqlPoolTests(unittest.TestCase):
         self.assertEqual(len(created), 1)
 
     def test_different_database_uses_separate_connection(self):
-        config = MySQLConfig(password="secret", database="kol_monitor_trade")
+        config = _mysql_config()
         created = []
         with patch("app.persistence.pymysql.connect", side_effect=lambda **kw: _FakeConn(created, kw)):
             with connect_mysql(config):
@@ -36,7 +36,7 @@ class MysqlPoolTests(unittest.TestCase):
         self.assertEqual(created[1]["database"], "market_opinion_tracker")
 
     def test_close_pool_closes_cached_connections(self):
-        config = MySQLConfig(password="secret", database="kol_monitor_trade")
+        config = _mysql_config()
         instances = []
         with patch("app.persistence.pymysql.connect", side_effect=lambda **kw: _FakeConn(instances, kw)):
             with connect_mysql(config) as conn:
@@ -63,6 +63,10 @@ class _FakeConn:
 
     def __getitem__(self, key):
         return self.kwargs[key]
+
+
+def _mysql_config():
+    return test_mysql_config()
 
 
 if __name__ == "__main__":

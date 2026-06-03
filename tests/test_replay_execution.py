@@ -1,16 +1,16 @@
 import unittest
 from unittest.mock import AsyncMock, patch
 
-from app.config import AppConfig
 from app.services.replay.action_service import ReplayActionService
 from app.services.replay.query_service import ReplayQueryService, clear_replay_query_cache
 from app.signals.models import SignalCandidate
 from app.trading.execution import TradingExecutor
+from support import test_config
 
 
 class TradingExecutorReplayTests(unittest.TestCase):
     def setUp(self):
-        self.config = AppConfig()
+        self.config = test_config()
         self.config.trading.enabled = True
         self.config.trading.execution_mode = "auto_demo"
         self.store = _StoreStub()
@@ -47,13 +47,13 @@ class TradingExecutorReplayTests(unittest.TestCase):
 
 class ReplayActionServiceTests(unittest.IsolatedAsyncioTestCase):
     async def test_real_execute_requires_confirmation_text(self):
-        service = ReplayActionService(AppConfig(), _ReplayStoreStub([]), executor=None)
+        service = ReplayActionService(test_config(), _ReplayStoreStub([]), executor=None)
         with self.assertRaisesRegex(ValueError, "REAL_EXECUTE"):
             await service.run_gold_empire("real_execute", ["a"], "")
 
     async def test_real_execute_stops_on_failed_submission(self):
         rows = [_row("a"), _row("b")]
-        service = ReplayActionService(AppConfig(), _ReplayStoreStub(rows), executor=None)
+        service = ReplayActionService(test_config(), _ReplayStoreStub(rows), executor=None)
         ready = _item("submitted", real_execute=True)
         failed = _item("failed", real_execute=True)
         with patch("app.services.replay.action_service.build_live_context", return_value={"live_mode": True}):
@@ -68,7 +68,7 @@ class ReplayActionServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["results"][1]["execution_status"], "failed")
 
     async def test_persist_clears_replay_query_cache(self):
-        service = ReplayActionService(AppConfig(), _ReplayStoreStub([_gold_row("a")]), executor=None)
+        service = ReplayActionService(test_config(), _ReplayStoreStub([_gold_row("a")]), executor=None)
         with patch("app.services.replay.action_service.build_live_context", return_value={"live_mode": False}):
             with patch("app.services.replay.action_service.inspect_log", new=AsyncMock(return_value=_item("blocked", False))):
                 with patch("app.services.replay.action_service.clear_replay_query_cache") as clear_cache:
@@ -81,7 +81,7 @@ class ReplayQueryCacheTests(unittest.IsolatedAsyncioTestCase):
         clear_replay_query_cache()
 
     async def test_same_filter_uses_query_cache(self):
-        service = ReplayQueryService(AppConfig(), _RecentStoreStub([_gold_row("a")]), executor=None)
+        service = ReplayQueryService(test_config(), _RecentStoreStub([_gold_row("a")]), executor=None)
         with patch("app.services.replay.query_service.build_live_context", return_value={"live_mode": False}):
             with patch("app.services.replay.query_service.inspect_log", new=AsyncMock(return_value=_item("parsed", False))) as inspect:
                 await service.load_gold_empire(limit=1)
@@ -90,7 +90,7 @@ class ReplayQueryCacheTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_symbol_filter_uses_candidate_symbol(self):
         store = _RecentStoreStub([_gold_row("a"), _gold_row("b")])
-        service = ReplayQueryService(AppConfig(), store, executor=None)
+        service = ReplayQueryService(test_config(), store, executor=None)
         with patch("app.services.replay.query_service.build_live_context", return_value={"live_mode": False}):
             with patch(
                 "app.services.replay.query_service.inspect_log",
@@ -102,7 +102,7 @@ class ReplayQueryCacheTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_date_filters_pass_through_to_store(self):
         store = _RecentStoreStub([_gold_row("a")])
-        service = ReplayQueryService(AppConfig(), store, executor=None)
+        service = ReplayQueryService(test_config(), store, executor=None)
         with patch("app.services.replay.query_service.build_live_context", return_value={"live_mode": False}):
             with patch("app.services.replay.query_service.inspect_log", new=AsyncMock(return_value=_item("parsed", False))):
                 await service.load_gold_empire(date_from="2026-05-20", date_to="2026-05-21", limit=1)

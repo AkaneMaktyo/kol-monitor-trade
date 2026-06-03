@@ -10,11 +10,26 @@ def _env(key: str, default: str = "") -> str:
     return os.getenv(key, default).strip()
 
 
+def _env_required(key: str) -> str:
+    value = _env(key)
+    if not value:
+        raise RuntimeError(f"{key} is required for the online MySQL connection")
+    return value
+
+
 def _env_int(key: str, default: int) -> int:
     try:
         return int(_env(key, str(default)))
     except ValueError:
         return default
+
+
+def _env_int_required(key: str) -> int:
+    raw = _env_required(key)
+    try:
+        return int(raw)
+    except ValueError as error:
+        raise RuntimeError(f"{key} must be an integer") from error
 
 
 def _env_float(key: str, default: float) -> float:
@@ -92,11 +107,11 @@ class WxPusherConfig:
 
 @dataclass
 class MySQLConfig:
-    host: str = field(default_factory=lambda: _env("MYSQL_HOST", "127.0.0.1"))
-    port: int = field(default_factory=lambda: _env_int("MYSQL_PORT", 3306))
-    user: str = field(default_factory=lambda: _env("MYSQL_USER", "root"))
-    password: str = field(default_factory=lambda: _env("MYSQL_PASSWORD", ""))
-    database: str = field(default_factory=lambda: _env("MYSQL_DATABASE", "kol_monitor_trade"))
+    host: str = field(default_factory=lambda: _env_required("MYSQL_HOST"))
+    port: int = field(default_factory=lambda: _env_int_required("MYSQL_PORT"))
+    user: str = field(default_factory=lambda: _env_required("MYSQL_USER"))
+    password: str = field(default_factory=lambda: _env_required("MYSQL_PASSWORD"))
+    database: str = field(default_factory=lambda: _env_required("MYSQL_DATABASE"))
     charset: str = field(default_factory=lambda: _env("MYSQL_CHARSET", "utf8mb4"))
 
 

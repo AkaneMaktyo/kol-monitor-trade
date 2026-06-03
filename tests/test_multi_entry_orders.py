@@ -1,14 +1,14 @@
 import unittest
 
-from app.config import AppConfig
 from app.signals.models import SignalCandidate
 from app.trading.execution import TradingExecutor
 from app.trading.risk import build_dry_run_intents
+from support import test_config
 
 
 class MultiEntryRiskTests(unittest.TestCase):
     def test_more_sell_signal_builds_two_intents(self):
-        intents = build_dry_run_intents(_candidate(), "2026-05-28 21:00:00", AppConfig().trading, ignore_stale=True)
+        intents = build_dry_run_intents(_candidate(), "2026-05-28 21:00:00", test_config().trading, ignore_stale=True)
 
         self.assertEqual(len(intents), 2)
         self.assertEqual([item.entry_price for item in intents], [4480.0, 4490.0])
@@ -18,7 +18,7 @@ class MultiEntryRiskTests(unittest.TestCase):
 
 class MultiEntryExecutionTests(unittest.TestCase):
     def test_executor_submits_two_orders_for_two_entries(self):
-        config = AppConfig()
+        config = test_config()
         config.trading.enabled = True
         config.trading.execution_mode = "auto_demo"
         store = _StoreStub()

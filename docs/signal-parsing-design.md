@@ -2,7 +2,7 @@
 
 ## 试验范围
 
-本次从本地 MySQL 的 `log_entries` 抽取当前系统已有 WxPusher 消息：
+本次从线上 MySQL 的 `log_entries` 抽取当前系统已有 WxPusher 消息：
 
 - 原始 WxPusher 日志：90 条。
 - 按 Discord 原文链接 / WxPusher 详情链接去重后：72 条。

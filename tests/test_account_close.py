@@ -5,9 +5,9 @@ from unittest.mock import patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.config import AppConfig
 from app.exchanges.bitget import BitgetDemoExchange
 from app.routes import account
+from support import test_config
 
 
 class BitgetClosePositionTests(unittest.TestCase):
@@ -23,7 +23,7 @@ class BitgetClosePositionTests(unittest.TestCase):
         self.assertEqual(body["force"], "gtc")
 
     def _close(self, order_type: str, price):
-        exchange = BitgetDemoExchange(AppConfig())
+        exchange = BitgetDemoExchange(test_config())
         with patch.object(exchange, "_request", return_value={"code": "00000", "data": {}}) as request:
             exchange.close_position("BTCUSDT", "long", Decimal("1.25"), "oid_1", order_type=order_type, price=price)
         return request.call_args.args[2]
@@ -32,7 +32,7 @@ class BitgetClosePositionTests(unittest.TestCase):
 class ClosePositionRouteTests(unittest.TestCase):
     def test_internal_error_returns_json_detail(self):
         app = FastAPI()
-        app.state.config = AppConfig()
+        app.state.config = test_config()
         app.include_router(account.router)
         with patch("app.routes.account.AccountActionService.close_position", side_effect=RuntimeError("boom")):
             response = TestClient(app).post("/api/account/close-position", json=_payload())
@@ -52,7 +52,7 @@ class BitgetPlaceTpslTests(unittest.TestCase):
         self.assertEqual(body, {})
 
     def _tpsl(self, stop_loss, take_profits):
-        exchange = BitgetDemoExchange(AppConfig())
+        exchange = BitgetDemoExchange(test_config())
         intent = type("Intent", (), {
             "symbol": "XAUUSDT",
             "side": "short",
