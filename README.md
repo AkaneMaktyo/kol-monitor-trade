@@ -9,6 +9,7 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 copy .env.example .env
+powershell -ExecutionPolicy Bypass -File deploy/start-db-tunnel.ps1 -SshPassword "<你的 SSH 密码>"
 python -m app.telegram_monitor login
 python run.py
 ```
