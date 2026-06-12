@@ -72,6 +72,19 @@ class YouTubeService:
         self._ensure()
         return self._store.get_video(video_id)
 
+    def ensure_audio(self, video_id: str) -> dict | None:
+        self._ensure()
+        video = self._store.get_video(video_id)
+        if not video:
+            return None
+        path = Path(video["audio_path"]) if video["audio_path"] else None
+        if path and path.exists():
+            return video
+        if not video.get("video_url"):
+            return video
+        audio = self._downloader.download(video["video_id"], video["video_url"])
+        return self._store.save_video({**video, **audio, "updated_at": self._now()})
+
     def _sync_video(self, channel: dict, video: dict) -> dict:
         existing = self._store.get_video(video["video_id"])
         if existing and existing["transcript_status"] == "ready" and Path(existing["audio_path"]).exists():

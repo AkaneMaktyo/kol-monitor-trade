@@ -65,7 +65,7 @@ async def get_video(video_id: str, request: Request):
 
 @router.get("/api/youtube/audio/{video_id}")
 async def get_audio(video_id: str, request: Request):
-    video = _service(request).get_video(video_id)
+    video = _service(request).ensure_audio(video_id)
     if not video or not video["audio_path"]:
         raise HTTPException(status_code=404, detail="音频不存在")
     path = Path(video["audio_path"])
