@@ -33,6 +33,32 @@ class AudioTranscriberTests(unittest.TestCase):
 
 
 class YouTubeServiceTests(unittest.TestCase):
+    def test_get_cloud_audio_link_for_aliyun_video(self):
+        service = YouTubeService.__new__(YouTubeService)
+        service._ready = True
+        service._store = _FakeStore({"video_id": "vid-1", "transcript_source": "aliyun_filetrans"})
+        service._uploader = _FakeUploader("https://example.com/audio.wav")
+        self.assertEqual(service.get_cloud_audio_link("vid-1"), "https://example.com/audio.wav")
+
+    def test_ensure_audio_accepts_windows_style_saved_path(self):
+        with TemporaryDirectory() as tmpdir:
+            ready_audio = Path(tmpdir) / "nested" / "voice.m4a"
+            ready_audio.parent.mkdir(parents=True, exist_ok=True)
+            ready_audio.write_bytes(b"x")
+            service = YouTubeService.__new__(YouTubeService)
+            service._ready = True
+            service._store = _FakeStore(
+                {
+                    "video_id": "vid-1",
+                    "video_url": "https://example.com/watch?v=1",
+                    "audio_path": str(ready_audio).replace("/", "\\"),
+                    "audio_duration_ms": 1234,
+                }
+            )
+            service._downloader = _FakeDownloader({})
+            saved = service.ensure_audio("vid-1")
+            self.assertEqual(saved["audio_path"], str(ready_audio).replace("/", "\\"))
+
     def test_ensure_audio_redownloads_when_saved_file_missing(self):
         with TemporaryDirectory() as tmpdir:
             ready_audio = Path(tmpdir) / "fresh.m4a"
@@ -78,6 +104,15 @@ class _FakeDownloader:
     def download(self, video_id: str, video_url: str):
         self.called_with = (video_id, video_url)
         return dict(self.result)
+
+
+class _FakeUploader:
+    def __init__(self, result: str):
+        self.result = result
+
+    def sign_video_audio(self, video_id: str):
+        self.called_with = video_id
+        return self.result
 
 
 if __name__ == "__main__":

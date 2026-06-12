@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 from app.services.youtube import YouTubeService
@@ -65,13 +65,17 @@ async def get_video(video_id: str, request: Request):
 
 @router.get("/api/youtube/audio/{video_id}")
 async def get_audio(video_id: str, request: Request):
-    video = _service(request).ensure_audio(video_id)
+    service = _service(request)
+    video = service.ensure_audio(video_id)
     if not video or not video["audio_path"]:
         raise HTTPException(status_code=404, detail="音频不存在")
-    path = Path(video["audio_path"])
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="音频文件不存在")
-    return FileResponse(path, filename=path.name)
+    path = Path(video["audio_path"].replace("\\", "/"))
+    if path.exists():
+        return FileResponse(path, filename=path.name)
+    file_link = service.get_cloud_audio_link(video_id)
+    if file_link:
+        return RedirectResponse(file_link, status_code=307)
+    raise HTTPException(status_code=404, detail="音频文件不存在")
 
 
 @router.delete("/api/youtube/channels/{channel_row_id}")

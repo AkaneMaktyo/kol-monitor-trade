@@ -6,6 +6,7 @@ from app.config import MySQLConfig
 from app.persistence.youtube import YouTubeStore
 from app.services.youtube.client import YouTubeClient
 from app.services.youtube.downloader import YouTubeAudioDownloader
+from app.services.youtube.oss import AliyunOssUploader
 from app.services.youtube.transcriber import AudioTranscriber
 
 
@@ -14,6 +15,7 @@ class YouTubeService:
         self._store = YouTubeStore(config)
         self._client = YouTubeClient()
         self._downloader = YouTubeAudioDownloader(Path("data") / "youtube_audio")
+        self._uploader = AliyunOssUploader()
         self._transcriber = AudioTranscriber()
         self._max_videos = max(1, int(os.getenv("YOUTUBE_SYNC_MAX_VIDEOS", "1") or 1))
         self._ready = False
@@ -77,7 +79,7 @@ class YouTubeService:
         video = self._store.get_video(video_id)
         if not video:
             return None
-        path = Path(video["audio_path"]) if video["audio_path"] else None
+        path = self._audio_path(video.get("audio_path", ""))
         if path and path.exists():
             return video
         if not video.get("video_url"):
@@ -85,9 +87,17 @@ class YouTubeService:
         audio = self._downloader.download(video["video_id"], video["video_url"])
         return self._store.save_video({**video, **audio, "updated_at": self._now()})
 
+    def get_cloud_audio_link(self, video_id: str) -> str:
+        self._ensure()
+        video = self._store.get_video(video_id)
+        if not video or video.get("transcript_source") != "aliyun_filetrans":
+            return ""
+        return self._uploader.sign_video_audio(video_id)
+
     def _sync_video(self, channel: dict, video: dict) -> dict:
         existing = self._store.get_video(video["video_id"])
-        if existing and existing["transcript_status"] == "ready" and Path(existing["audio_path"]).exists():
+        existing_path = self._audio_path(existing.get("audio_path", "")) if existing else None
+        if existing and existing["transcript_status"] == "ready" and existing_path and existing_path.exists():
             return existing
         now = self._now()
         audio = self._downloader.download(video["video_id"], video["video_url"])
@@ -118,6 +128,10 @@ class YouTubeService:
         if not self._ready:
             self._store.initialize()
             self._ready = True
+
+    @staticmethod
+    def _audio_path(raw_path: str) -> Path | None:
+        return Path(raw_path.replace("\\", "/")) if raw_path else None
 
     @staticmethod
     def _now() -> str:
