@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}YouTube 管理 - KOL Monitor Trade{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="/static/css/youtube.css">
+{% endblock %}
+
+{% block content %}
+<section class="panel youtube-page">
+    <header class="hero">
+        <div class="hero-copy">
+            <h1>YouTube 音频转写</h1>
+            <p class="muted">同步频道后会保存音频到本地，转成适合识别的音频规格，再生成可点击跳转的分段文本。</p>
+        </div>
+        <button id="sync-all" type="button">同步全部频道</button>
+    </header>
+
+    <form class="add-form" id="channel-form">
+        <label class="field">
+            <span>频道链接</span>
+            <input id="channel-url" type="text" placeholder="支持频道链接、@handle 或 UC 开头频道 ID" required>
+        </label>
+        <label class="field">
+            <span>显示名称</span>
+            <input id="channel-name" type="text" placeholder="可选：自定义名称">
+        </label>
+        <div class="form-actions">
+            <button type="submit">添加并同步</button>
+            <span class="form-status" id="form-status"></span>
+        </div>
+    </form>
+
+    <section class="summary-grid" aria-label="转写概览">
+        <article class="summary-card">
+            <span class="summary-label">频道数</span>
+            <strong id="channel-count">0</strong>
+        </article>
+        <article class="summary-card">
+            <span class="summary-label">视频数</span>
+            <strong id="video-count">0</strong>
+        </article>
+        <article class="summary-card">
+            <span class="summary-label">已完成</span>
+            <strong id="ready-count">0</strong>
+        </article>
+        <article class="summary-card">
+            <span class="summary-label">失败数</span>
+            <strong id="error-count">0</strong>
+        </article>
+    </section>
+
+    <div class="youtube-layout">
+        <section class="channel-column">
+            <div class="section-head">
+                <h2>频道</h2>
+                <span class="count-pill" id="channel-status">等待同步</span>
+            </div>
+            <div id="channel-list" class="channel-list"></div>
+        </section>
+
+        <section class="video-column">
+            <div class="section-head">
+                <h2>视频与转写</h2>
+                <span id="video-status" class="muted">点击视频查看音频和文本</span>
+            </div>
+            <div id="video-list" class="video-list"></div>
+            <article id="detail-panel" class="detail-panel empty">
+                <div class="detail-head">
+                    <div>
+                        <h3>尚未选择视频</h3>
+                        <p id="detail-meta" class="muted">选择后可播放音频并按段跳转。</p>
+                    </div>
+                    <span id="detail-badge" class="status-pill">未选择</span>
+                </div>
+                <audio id="audio-player" controls preload="metadata"></audio>
+                <div id="segment-list" class="segment-list"></div>
+            </article>
+        </section>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/youtube/page.js"></script>
+{% endblock %}

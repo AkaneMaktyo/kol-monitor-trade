@@ -107,3 +107,27 @@ code {
     background: var(--border);
     border-radius: 4px;
 }
+
+@media (max-width: 720px) {
+    .navbar {
+        height: auto;
+        padding: 14px 16px;
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .nav-links {
+        width: 100%;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .main-content {
+        padding: 16px;
+    }
+
+    .panel {
+        padding: 16px;
+    }
+}

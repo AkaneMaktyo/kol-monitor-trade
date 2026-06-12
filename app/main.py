@@ -21,7 +21,7 @@ from app.persistence import close_mysql_pool
 from app.persistence.prompt_store import PromptProfileStore
 from app.persistence.store import LogStore
 from app.persistence.trading_store import TradingStore
-from app.routes import account, api, dashboard, signals, trading_controls
+from app.routes import account, api, dashboard, signals, trading_controls, youtube
 from app.services.dashboard.trading_controls import TradingControlsService
 from app.services.signal_runtime import LiveSignalProcessor
 from app.services.messages import MessageService
@@ -158,6 +158,7 @@ app.include_router(account.router)
 app.include_router(trading_controls.router)
 
 
+app.include_router(youtube.router)
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await ws_manager.connect(websocket)
