@@ -23,7 +23,8 @@ class MultiEntryExecutionTests(unittest.TestCase):
         config.trading.execution_mode = "auto_demo"
         store = _StoreStub()
         executor = TradingExecutor(config, store)
-        executor._bitget = _ExchangeStub()
+        exchange = _ExchangeStub()
+        executor._bitget = exchange
 
         result = executor.handle_candidate(_candidate(), "2026-05-28 21:00:00", persist=True, ignore_stale=True, allow_submit=True)
 
@@ -32,6 +33,15 @@ class MultiEntryExecutionTests(unittest.TestCase):
         self.assertEqual(result["order"]["status"], "submitted")
         self.assertEqual(store.intent_ids, ["intent_log_1_1", "intent_log_1_2"])
         self.assertEqual([item["entry_price"] for item in result["intents"]], [4480.0, 4490.0])
+        self.assertEqual(len(set(exchange.client_oids)), 2)
+
+    def test_client_oid_keeps_layered_orders_unique(self):
+        first = TradingExecutor._client_oid("intent_1780917129356355152_0868_1")
+        second = TradingExecutor._client_oid("intent_1780917129356355152_0868_2")
+
+        self.assertNotEqual(first, second)
+        self.assertLessEqual(len(first), 64)
+        self.assertLessEqual(len(second), 64)
 
 
 class _StoreStub:
@@ -59,12 +69,14 @@ class _StoreStub:
 class _ExchangeStub:
     def __init__(self):
         self.calls = 0
+        self.client_oids = []
 
     def get_market_price(self, symbol):
         return 0.0
 
     def place_order(self, intent, client_oid):
         self.calls += 1
+        self.client_oids.append(client_oid)
         return {"exchange": "bitget", "status": "submitted", "client_oid": client_oid, "order_id": f"oid_{self.calls}"}
 
     def place_position_tpsl(self, intent, client_oid):

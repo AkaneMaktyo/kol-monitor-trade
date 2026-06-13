@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.exchanges.bitget import BitgetDemoExchange
 from app.routes import account
+from app.services.account_overview import AccountOverviewService
 from support import test_config
 
 
@@ -68,6 +69,40 @@ class BitgetPlaceTpslTests(unittest.TestCase):
         return request.call_args.args[2] if request.called else {}
 
 
+class AccountOverviewServiceTests(unittest.TestCase):
+    def test_load_merges_account_sections(self):
+        store = _FakeAccountStore()
+        service = AccountOverviewService(test_config(), store)
+        service._exchange = _FakeExchange()
+
+        payload = service.load()
+
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["summary"]["positions"], 1)
+        self.assertEqual(payload["summary"]["pending_orders"], 1)
+        self.assertEqual(payload["curve"], [{"account_equity": 1000.0}])
+        self.assertEqual(store.saved["accountEquity"], "1000")
+        self.assertEqual(payload["history_positions"], [{"symbol": "XAUUSDT"}])
+
+    def test_load_collects_exchange_errors(self):
+        service = AccountOverviewService(test_config(), _FakeAccountStore())
+        service._exchange = _ErrorExchange()
+
+        payload = service.load()
+
+        self.assertFalse(payload["ok"])
+        self.assertIn("positions: timeout", payload["errors"])
+        self.assertEqual(payload["positions"], [])
+        self.assertEqual(payload["pending_orders"], [])
+
+    def test_load_history_separates_slow_section(self):
+        service = AccountOverviewService(test_config(), _FakeAccountStore())
+        service._exchange = _FakeExchange()
+        payload = service.load_history()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["history_positions"], [{"symbol": "XAUUSDT"}])
+
+
 def _payload() -> dict:
     return {
         "symbol": "BTCUSDT",
@@ -77,6 +112,48 @@ def _payload() -> dict:
         "order_type": "market",
         "price": None,
     }
+
+
+class _FakeExchange:
+    def get_accounts(self):
+        return {"code": "00000", "data": [{"accountEquity": "1000", "available": "850", "marginCoin": "USDT"}]}
+
+    def get_positions(self):
+        return {"code": "00000", "data": [{"symbol": "XAUUSDT", "achievedProfits": "12.5"}]}
+
+    def get_pending_orders(self):
+        return {"code": "00000", "data": {"entrustedList": [{"orderId": "oid_1"}]}}
+
+    def get_history_positions(self):
+        return {"code": "00000", "data": {"list": [{"symbol": "XAUUSDT"}]}}
+
+
+class _ErrorExchange(_FakeExchange):
+    def get_positions(self):
+        raise RuntimeError("timeout")
+
+    def get_pending_orders(self):
+        return {"code": "50001", "msg": "busy"}
+
+    def get_history_positions(self):
+        return {"code": "50002", "msg": "history busy"}
+
+
+class _FakeAccountStore:
+    def __init__(self):
+        self.saved = {}
+
+    def save_snapshot(self, account: dict):
+        self.saved = account
+
+    def list_snapshots(self):
+        return [{"account_equity": 1000.0}]
+
+    def list_trade_orders(self):
+        return []
+
+    def list_signal_updates(self):
+        return []
 
 
 if __name__ == "__main__":

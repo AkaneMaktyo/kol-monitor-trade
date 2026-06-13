@@ -1,5 +1,7 @@
 """Build account overview data for the UI."""
 
+from concurrent.futures import ThreadPoolExecutor
+
 from app.config import AppConfig
 from app.exchanges.bitget import BitgetDemoExchange
 from app.persistence.account_store import AccountStore
@@ -11,13 +13,21 @@ class AccountOverviewService:
         self._exchange = BitgetDemoExchange(config)
 
     def load(self) -> dict:
+        current = self.load_current()
+        history = self.load_history()
+        current["ok"] = current["ok"] and history["ok"]
+        current["errors"] = [*current["errors"], *history["errors"]]
+        current["history_positions"] = history["history_positions"]
+        return current
+
+    def load_current(self, save_snapshot: bool = True) -> dict:
         errors = []
-        accounts = self._data(self._exchange.get_accounts(), errors, "accounts")
-        positions = self._data(self._exchange.get_positions(), errors, "positions")
-        orders = self._pending_orders(self._exchange.get_pending_orders(), errors)
-        history = self._history_positions(self._exchange.get_history_positions(), errors)
+        responses = self._responses(errors)
+        accounts = self._data(responses["accounts"], errors, "accounts")
+        positions = self._data(responses["positions"], errors, "positions")
+        orders = self._pending_orders(responses["orders"], errors)
         account = accounts[0] if accounts else {}
-        if account:
+        if account and save_snapshot:
             self._store.save_snapshot(account)
         return {
             "ok": not errors,
@@ -26,11 +36,36 @@ class AccountOverviewService:
             "account": account,
             "curve": self._store.list_snapshots(),
             "positions": positions,
-            "history_positions": history,
             "pending_orders": orders,
             "trade_orders": self._store.list_trade_orders(),
             "signal_updates": self._store.list_signal_updates(),
         }
+
+    def load_history(self) -> dict:
+        errors = []
+        history = self._history_positions(self._exchange.get_history_positions(), errors)
+        return {
+            "ok": not errors,
+            "errors": errors,
+            "history_positions": history,
+        }
+
+    def _responses(self, errors: list[str]) -> dict[str, dict]:
+        calls = {
+            "accounts": self._exchange.get_accounts,
+            "positions": self._exchange.get_positions,
+            "orders": self._exchange.get_pending_orders,
+        }
+        with ThreadPoolExecutor(max_workers=len(calls)) as pool:
+            futures = {name: pool.submit(call) for name, call in calls.items()}
+        responses = {}
+        for name, future in futures.items():
+            try:
+                responses[name] = future.result()
+            except Exception as exc:
+                errors.append(f"{name}: {exc}")
+                responses[name] = {}
+        return responses
 
     @staticmethod
     def _data(response: dict, errors: list[str], name: str) -> list[dict]:

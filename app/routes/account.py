@@ -30,6 +30,17 @@ async def account_overview(request: Request):
     return await asyncio.to_thread(service.load)
 
 
+@router.get("/current")
+async def account_current(request: Request):
+    return await request.app.state.account_live.snapshot()
+
+
+@router.get("/history")
+async def account_history(request: Request):
+    service = AccountOverviewService(request.app.state.config, request.app.state.account_store)
+    return await asyncio.to_thread(service.load_history)
+
+
 @router.get("/history-detail")
 async def account_history_detail(request: Request, symbol: str, hold_side: str, closed_at: int, open_price: float = 0, open_size: float = 0, close_price: float = 0, net_profit: float = 0):
     detail = await asyncio.to_thread(

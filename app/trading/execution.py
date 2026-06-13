@@ -1,5 +1,6 @@
 """Trading execution orchestration."""
 
+import hashlib
 import time
 import uuid
 
@@ -87,8 +88,9 @@ class TradingExecutor:
 
     @staticmethod
     def _client_oid(intent_id: str) -> str:
-        base = intent_id.replace("intent_", "")[:20] if intent_id else uuid.uuid4().hex[:20]
-        return f"kol_{base}"
+        base = intent_id.replace("intent_", "") if intent_id else uuid.uuid4().hex
+        digest = hashlib.sha1(base.encode("utf-8")).hexdigest()[:8]
+        return f"kol_{base[:28]}_{digest}"[:64]
 
     @staticmethod
     def _apply_audit(intent, audit: dict | None) -> None:

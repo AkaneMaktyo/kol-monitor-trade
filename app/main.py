@@ -21,7 +21,8 @@ from app.persistence import close_mysql_pool
 from app.persistence.prompt_store import PromptProfileStore
 from app.persistence.store import LogStore
 from app.persistence.trading_store import TradingStore
-from app.routes import account, api, dashboard, signals, trading_controls, youtube
+from app.routes import account, api, dashboard, signals, trading_controls
+from app.services.account import AccountLiveRuntime
 from app.services.dashboard.trading_controls import TradingControlsService
 from app.services.signal_runtime import LiveSignalProcessor
 from app.services.messages import MessageService
@@ -50,6 +51,7 @@ telegram_monitor: TelegramMonitor | None = None
 discord_monitor: DiscordMonitor | None = None
 wxpusher_monitor: WxPusherMonitor | None = None
 forwarder: MessageForwarder | None = None
+account_live: AccountLiveRuntime | None = None
 start_time = 0.0
 
 
@@ -69,7 +71,7 @@ async def _on_message(entry: LogEntry) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global config, message_service, telegram_monitor, discord_monitor
-    global wxpusher_monitor, forwarder, start_time
+    global wxpusher_monitor, forwarder, start_time, account_live
 
     load_dotenv()
     config = load_config()
@@ -104,6 +106,8 @@ async def lifespan(app: FastAPI):
     app.state.trading_executor = trading_executor
     app.state.trading_controls_service = trading_controls_service
     app.state.message_service = message_service
+    account_live = AccountLiveRuntime(config, account_store, ws_manager)
+    app.state.account_live = account_live
 
     forwarder = MessageForwarder(config)
     telegram_monitor = TelegramMonitor(config, system_state.telegram)
@@ -129,6 +133,7 @@ async def lifespan(app: FastAPI):
     await telegram_monitor.start(on_message=_on_message)
     await discord_monitor.start(on_message=_on_message)
     await wxpusher_monitor.start(on_message=_on_message)
+    await account_live.start()
     heartbeat_task = asyncio.create_task(_heartbeat_loop())
     position_task = asyncio.create_task(position_watcher.run())
     logger.info("server ready at http://%s:%s", config.host, config.port)
@@ -140,6 +145,8 @@ async def lifespan(app: FastAPI):
     await telegram_monitor.stop()
     await discord_monitor.stop()
     await wxpusher_monitor.stop()
+    if account_live:
+        await account_live.stop()
     close_mysql_pool()
 
 
@@ -158,7 +165,6 @@ app.include_router(account.router)
 app.include_router(trading_controls.router)
 
 
-app.include_router(youtube.router)
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await ws_manager.connect(websocket)
