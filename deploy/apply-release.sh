@@ -9,13 +9,15 @@ STATE_DIR="${STATE_DIR:-/var/lib/kol-monitor-trade}"
 ENV_DIR="${ENV_DIR:-/etc/kol-monitor-trade}"
 SERVICE_NAME="${SERVICE_NAME:-kol-monitor-trade}"
 PORT="${PORT:-8000}"
+WWW_ROOT="${WWW_ROOT:-/var/www/market-opinion-tracker}"
+MUX_BASE="${MUX_BASE:-/opt/kol-monitor-trade-deploy}"
 PYPI_INDEX="${PYPI_INDEX:-https://pypi.tuna.tsinghua.edu.cn/simple}"
 INSTALL_SELFCORD="${INSTALL_SELFCORD:-false}"
 RELEASE_ID="$(date -u +%Y%m%d%H%M%S)-${COMMIT_SHA:0:12}"
 RELEASE_DIR="$APP_BASE/releases/$RELEASE_ID"
 VENV_DIR="$APP_BASE/venv"
 
-mkdir -p "$APP_BASE/releases" "$STATE_DIR/data" "$ENV_DIR" "$RELEASE_DIR"
+mkdir -p "$APP_BASE/releases" "$STATE_DIR/data" "$ENV_DIR" "$RELEASE_DIR" "$WWW_ROOT/market" "$MUX_BASE"
 tar -xzf "$ARCHIVE_PATH" -C "$RELEASE_DIR"
 
 python3 -m venv "$VENV_DIR"
@@ -35,6 +37,8 @@ if [[ ! -f "$ENV_DIR/app.env" ]]; then
   exit 1
 fi
 
+cp -f "$(dirname "$0")/ssh_http_mux.py" "$MUX_BASE/ssh_http_mux.py"
+chmod 755 "$MUX_BASE/ssh_http_mux.py"
 ln -sfn "$RELEASE_DIR" "$APP_BASE/current"
 id -u koltrade >/dev/null 2>&1 || useradd --system --home "$STATE_DIR" --shell /usr/sbin/nologin koltrade
 chown -R koltrade:koltrade "$APP_BASE" "$STATE_DIR"
@@ -67,7 +71,7 @@ UNIT
 cat > /etc/nginx/sites-available/kol-monitor-trade <<'NGINX'
 server {
     listen 80 default_server;
-    listen 8888;
+    listen 127.0.0.1:8889;
     server_name _;
 
     location /market/api/ {
@@ -97,13 +101,30 @@ server {
 }
 NGINX
 
+cat > /etc/systemd/system/ssh-http-mux.service <<'UNIT'
+[Unit]
+Description=SSH and HTTP port mux on 8888
+After=network.target nginx.service ssh.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/kol-monitor-trade-deploy/ssh_http_mux.py --listen 0.0.0.0:8888 --ssh 127.0.0.1:22 --http 127.0.0.1:8889
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
 rm -f /etc/nginx/sites-enabled/default
 ln -sfn /etc/nginx/sites-available/kol-monitor-trade /etc/nginx/sites-enabled/kol-monitor-trade
 nginx -t
 systemctl daemon-reload
 systemctl enable "$SERVICE_NAME"
+systemctl enable ssh-http-mux
 systemctl restart "$SERVICE_NAME"
-systemctl reload nginx
+systemctl restart nginx
+systemctl restart ssh-http-mux
 
 for _ in $(seq 1 30); do
   if curl -fsS "http://127.0.0.1:$PORT/api/health" >/dev/null; then

@@ -1,15 +1,14 @@
 """REST API 路由。"""
 
-import asyncio
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from app.models import LogEntry, LogLevel, Platform
-from app.services.llm_client import LlmConfigError, test_chat_completion
 from app.services.telegram_channels import list_telegram_channels
 from app.services.wxpusher.detail import fetch_detail_text
 
 router = APIRouter(prefix="/api", tags=["api"])
+LLM_DISABLED_MESSAGE = "项目已暂时禁用大模型相关能力"
 
 
 class IngestRequest(BaseModel):
@@ -24,21 +23,8 @@ class IngestRequest(BaseModel):
     error_message: str = ""
 
 
-class PromptProfilePayload(BaseModel):
-    id: str | None = None
-    name: str = Field(min_length=1, max_length=120)
-    source_author: str = Field(default="", max_length=255)
-    source_channel: str = Field(default="", max_length=255)
-    prompt: str = Field(min_length=10, max_length=12000)
-    enabled: bool = True
-
-
-class LlmConfigPayload(BaseModel):
-    provider: str = Field(default="deepseek", max_length=40)
-    base_url: str = Field(default="https://api.deepseek.com", max_length=255)
-    model: str = Field(default="deepseek-v4-flash", max_length=120)
-    api_key: str = Field(default="", max_length=4000)
-    enabled: bool = True
+def _llm_disabled() -> None:
+    raise HTTPException(status_code=403, detail=LLM_DISABLED_MESSAGE)
 
 
 @router.get("/status")
@@ -125,65 +111,38 @@ async def get_wxpusher_detail(url: str, request: Request):
 
 
 @router.get("/signal-prompts")
-async def list_signal_prompts(request: Request):
-    store = request.app.state.prompt_store
-    return {"profiles": store.list_profiles()}
+async def list_signal_prompts():
+    _llm_disabled()
 
 
 @router.post("/signal-prompts")
-async def create_signal_prompt(payload: PromptProfilePayload, request: Request):
-    store = request.app.state.prompt_store
-    profile = store.save(payload.model_dump())
-    return {"ok": True, "profile": profile}
+async def create_signal_prompt():
+    _llm_disabled()
 
 
 @router.put("/signal-prompts/{profile_id}")
-async def update_signal_prompt(
-    profile_id: str,
-    payload: PromptProfilePayload,
-    request: Request,
-):
-    store = request.app.state.prompt_store
-    if not store.get(profile_id):
-        raise HTTPException(status_code=404, detail="提示词配置不存在")
-    data = payload.model_dump()
-    data["id"] = profile_id
-    profile = store.save(data)
-    return {"ok": True, "profile": profile}
+async def update_signal_prompt(profile_id: str):
+    _llm_disabled()
 
 
 @router.delete("/signal-prompts/{profile_id}")
-async def delete_signal_prompt(profile_id: str, request: Request):
-    store = request.app.state.prompt_store
-    if not store.delete(profile_id):
-        raise HTTPException(status_code=404, detail="提示词配置不存在")
-    return {"ok": True}
+async def delete_signal_prompt(profile_id: str):
+    _llm_disabled()
 
 
 @router.get("/llm-config")
-async def get_llm_config(request: Request):
-    store = request.app.state.llm_store
-    return {"config": store.get()}
+async def get_llm_config():
+    _llm_disabled()
 
 
 @router.put("/llm-config")
-async def save_llm_config(payload: LlmConfigPayload, request: Request):
-    store = request.app.state.llm_store
-    config = store.save(payload.model_dump())
-    return {"ok": True, "config": config}
+async def save_llm_config():
+    _llm_disabled()
 
 
 @router.post("/llm-config/test")
-async def test_llm_config(payload: LlmConfigPayload, request: Request):
-    store = request.app.state.llm_store
-    data = store.get(include_key=True)
-    incoming = payload.model_dump()
-    data.update({key: value for key, value in incoming.items() if value or key == "enabled"})
-    try:
-        result = await asyncio.to_thread(test_chat_completion, data)
-    except LlmConfigError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return {"ok": True, "result": result}
+async def test_llm_config():
+    _llm_disabled()
 
 
 @router.get("/health")

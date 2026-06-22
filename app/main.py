@@ -1,6 +1,7 @@
 """FastAPI 应用入口。"""
 
 import asyncio
+import inspect
 import logging
 import time
 from contextlib import asynccontextmanager
@@ -15,10 +16,8 @@ from app.config import AppConfig, load_config
 from app.discord_monitor import DiscordMonitor
 from app.forwarder import MessageForwarder
 from app.models import LogEntry, LogLevel, Platform, SystemState
-from app.persistence.llm_store import LlmConfigStore
 from app.persistence.account_store import AccountStore
 from app.persistence import close_mysql_pool
-from app.persistence.prompt_store import PromptProfileStore
 from app.persistence.store import LogStore
 from app.persistence.trading_store import TradingStore
 from app.routes import account, api, dashboard, signals, trading_controls
@@ -68,6 +67,17 @@ async def _on_message(entry: LogEntry) -> None:
         await message_service.submit(entry)
 
 
+async def _run_startup_step(label: str, action, timeout: int = 15) -> None:
+    try:
+        result = action()
+        if inspect.isawaitable(result):
+            await asyncio.wait_for(result, timeout=timeout)
+    except asyncio.TimeoutError:
+        logger.warning("%s timed out after %ss; continuing degraded startup", label, timeout)
+    except Exception:
+        logger.exception("%s failed during startup; continuing degraded startup", label)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global config, message_service, telegram_monitor, discord_monitor
@@ -77,16 +87,16 @@ async def lifespan(app: FastAPI):
     config = load_config()
     store = LogStore(config.mysql)
     store.initialize()
-    prompt_store = PromptProfileStore(config.mysql)
-    prompt_store.initialize()
-    llm_store = LlmConfigStore(config.mysql)
-    llm_store.initialize()
     trading_store = TradingStore(config.mysql)
     trading_store.initialize()
     account_store = AccountStore(config.mysql)
     account_store.initialize()
     shared_wxpusher = SharedWxPusherRuntime(config)
-    shared_wxpusher.initialize()
+    await _run_startup_step(
+        "Shared WxPusher bootstrap",
+        lambda: asyncio.to_thread(shared_wxpusher.initialize),
+        timeout=10,
+    )
     message_service = MessageService(system_state, store, ws_manager)
     await message_service.load_recent()
     trading_executor = TradingExecutor(config, trading_store)
@@ -98,8 +108,6 @@ async def lifespan(app: FastAPI):
     app.state.system_state = system_state
     app.state.ws_manager = ws_manager
     app.state.log_store = store
-    app.state.prompt_store = prompt_store
-    app.state.llm_store = llm_store
     app.state.trading_store = trading_store
     app.state.account_store = account_store
     app.state.shared_wxpusher = shared_wxpusher
@@ -130,10 +138,20 @@ async def lifespan(app: FastAPI):
         ),
         allow_forward=False,
     )
-    await telegram_monitor.start(on_message=_on_message)
-    await discord_monitor.start(on_message=_on_message)
-    await wxpusher_monitor.start(on_message=_on_message)
-    await account_live.start()
+    await _run_startup_step(
+        "Telegram monitor startup",
+        lambda: telegram_monitor.start(on_message=_on_message),
+    )
+    await _run_startup_step(
+        "Discord monitor startup",
+        lambda: discord_monitor.start(on_message=_on_message),
+    )
+    await _run_startup_step(
+        "WxPusher monitor startup",
+        lambda: wxpusher_monitor.start(on_message=_on_message),
+        timeout=10,
+    )
+    await _run_startup_step("Account live runtime startup", account_live.start, timeout=25)
     heartbeat_task = asyncio.create_task(_heartbeat_loop())
     position_task = asyncio.create_task(position_watcher.run())
     logger.info("server ready at http://%s:%s", config.host, config.port)

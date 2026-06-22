@@ -2,62 +2,157 @@ name: Deploy to cloud
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
+
+concurrency:
+  group: kol-prod-deploy-self-hosted
+  cancel-in-progress: false
+
+env:
+  APP_URL: http://103.236.98.149:8888/
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, windows, x64, market-deploy]
+    defaults:
+      run:
+        shell: powershell -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ". '{0}'"
+    env:
+      PSExecutionPolicyPreference: Bypass
+      SSH_HOST: ${{ secrets.KMT_SSH_HOST }}
+      SSH_PORT: ${{ secrets.KMT_SSH_PORT }}
+      SSH_USER: ${{ secrets.KMT_SSH_USER }}
+      SSH_PASSWORD: ${{ secrets.KMT_SSH_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate deploy secrets
-        env:
-          SSH_HOST: ${{ secrets.KMT_SSH_HOST }}
-          SSH_PORT: ${{ secrets.KMT_SSH_PORT }}
-          SSH_USER: ${{ secrets.KMT_SSH_USER }}
-          SSH_PASSWORD: ${{ secrets.KMT_SSH_PASSWORD }}
-        run: |
-          missing=()
-          for name in SSH_HOST SSH_PORT SSH_USER SSH_PASSWORD; do
-            if [ -z "${!name}" ]; then
-              missing+=("$name")
-            fi
-          done
-          if [ ${#missing[@]} -gt 0 ]; then
-            echo "Missing deploy secrets: ${missing[*]}"
-            exit 1
-          fi
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-      - name: Pack release
-        run: |
-          RELEASE_ARCHIVE="$RUNNER_TEMP/app.tar.gz"
-          tar \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='.venv' \
-            --exclude='__pycache__' \
-            --exclude='*.pyc' \
-            --exclude='.env' \
-            --exclude='data' \
-            --exclude='logs' \
-            -czf "$RELEASE_ARCHIVE" .
-          echo "RELEASE_ARCHIVE=$RELEASE_ARCHIVE" >> "$GITHUB_ENV"
+      - name: Install deploy SSH client
+        run: python -m pip install --disable-pip-version-check paramiko
 
-      - name: Upload and restart
-        env:
-          SSH_HOST: ${{ secrets.KMT_SSH_HOST }}
-          SSH_PORT: ${{ secrets.KMT_SSH_PORT }}
-          SSH_USER: ${{ secrets.KMT_SSH_USER }}
-          SSH_PASSWORD: ${{ secrets.KMT_SSH_PASSWORD }}
+      - name: Build and deploy
         run: |
-          sudo apt-get update
-          sudo apt-get install -y sshpass
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
-            "mkdir -p /root/kol-monitor-deploy"
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no -P "$SSH_PORT" \
-            "$RELEASE_ARCHIVE" deploy/apply-release.sh "$SSH_USER@$SSH_HOST:/root/kol-monitor-deploy/"
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
-            "bash /root/kol-monitor-deploy/apply-release.sh /root/kol-monitor-deploy/app.tar.gz $GITHUB_SHA"
+          & .\deploy\manual-release.ps1 `
+            -SshHost $env:SSH_HOST `
+            -SshPort ([int]$env:SSH_PORT) `
+            -SshUser $env:SSH_USER `
+            -SshPassword $env:SSH_PASSWORD `
+            -CommitSha "${{ github.sha }}"
+
+      - name: Verify public endpoints
+        run: |
+          $urls = @(
+            "http://103.236.98.149:8888/api/health",
+            "http://103.236.98.149:8888/"
+          )
+          foreach ($url in $urls) {
+            $ok = $false
+            for ($i = 1; $i -le 12; $i++) {
+              curl.exe -fsS --http1.1 --max-time 20 $url > $null
+              if ($LASTEXITCODE -eq 0) {
+                $ok = $true
+                break
+              }
+              Start-Sleep -Seconds 5
+            }
+            if (-not $ok) {
+              throw "Endpoint verification failed: $url"
+            }
+          }
+
+      - name: Write summary
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          $shortSha = $env:SHA.Substring(0, 7)
+          $runUrl = "https://github.com/$($env:REPO)/actions/runs/$($env:RUN_ID)"
+          $statusText = if ($env:JOB_STATUS -eq 'success') { 'Deploy succeeded' } else { 'Deploy failed' }
+          @(
+            "## $statusText"
+            ""
+            "- Branch: ``$($env:BRANCH)``"
+            "- Commit: ``$shortSha``"
+            "- Actor: ``$($env:ACTOR)``"
+            "- Page: $env:APP_URL"
+            "- Details: $runUrl"
+          ) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
+      - name: Notify WxPusher
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          SPT: ${{ secrets.DEPLOY_WXPUSHER_SPT }}
+          APP_TOKEN: ${{ secrets.DEPLOY_WXPUSHER_APP_TOKEN }}
+          UIDS: ${{ secrets.DEPLOY_WXPUSHER_UIDS }}
+          TOPIC_IDS: ${{ secrets.DEPLOY_WXPUSHER_TOPIC_IDS }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:SPT) -and [string]::IsNullOrWhiteSpace($env:APP_TOKEN)) { exit 0 }
+          $title = if ($env:JOB_STATUS -eq 'success') { 'KOL deploy succeeded' } else { 'KOL deploy failed' }
+          $content = @"
+          $title
+
+          Status: $($env:JOB_STATUS)
+          Repo: $($env:REPO)
+          Branch: $($env:BRANCH)
+          Commit: $($env:SHA.Substring(0, 7))
+          Actor: $($env:ACTOR)
+          Page: $($env:APP_URL)
+          Details: https://github.com/$($env:REPO)/actions/runs/$($env:RUN_ID)
+          "@
+          $notified = $false
+          if (-not [string]::IsNullOrWhiteSpace($env:SPT)) {
+            try {
+              $simplePayload = @{
+                spt = $env:SPT
+                summary = $title.Substring(0, [Math]::Min(100, $title.Length))
+                content = $content
+                contentType = 1
+                url = "https://github.com/$($env:REPO)/actions/runs/$($env:RUN_ID)"
+              } | ConvertTo-Json -Depth 4
+              $simpleResponse = Invoke-RestMethod -Uri 'https://wxpusher.zjiecode.com/api/send/message/simple-push' -Method Post -ContentType 'application/json' -Body $simplePayload -TimeoutSec 15
+              if ($simpleResponse.code -eq 1000) { $notified = $true } else { throw "code=$($simpleResponse.code); msg=$($simpleResponse.msg)" }
+            } catch {
+              Write-Host "WxPusher SPT notify failed: $($_.Exception.Message)"
+            }
+          }
+          if (-not $notified -and -not [string]::IsNullOrWhiteSpace($env:APP_TOKEN)) {
+            try {
+              $uids = @()
+              if (-not [string]::IsNullOrWhiteSpace($env:UIDS)) { $uids = ($env:UIDS -replace ';', ',').Split(',').Trim() | Where-Object { $_ } }
+              $topicIds = @()
+              if (-not [string]::IsNullOrWhiteSpace($env:TOPIC_IDS)) { $topicIds = ($env:TOPIC_IDS -replace ';', ',').Split(',').Trim() | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ } }
+              $payload = @{
+                appToken = $env:APP_TOKEN
+                summary = $title.Substring(0, [Math]::Min(100, $title.Length))
+                content = $content
+                contentType = 1
+                uids = $uids
+                topicIds = $topicIds
+                url = "https://github.com/$($env:REPO)/actions/runs/$($env:RUN_ID)"
+              } | ConvertTo-Json -Depth 4
+              $response = Invoke-RestMethod -Uri 'https://wxpusher.zjiecode.com/api/send/message' -Method Post -ContentType 'application/json' -Body $payload -TimeoutSec 15
+              if ($response.code -eq 1000) { $notified = $true } else { throw "code=$($response.code); msg=$($response.msg)" }
+            } catch {
+              Write-Host "WxPusher app-token notify failed: $($_.Exception.Message)"
+            }
+          }
+          if (-not $notified) {
+            Write-Host "WxPusher notify not confirmed."
+          }

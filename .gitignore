@@ -15,3 +15,5 @@ build/
 *.log
 logs/
 data/
+.codegraph/
+.codex-ssh-askpass.cmd

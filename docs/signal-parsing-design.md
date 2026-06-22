@@ -255,3 +255,29 @@ API Key 不返回给前端；页面只显示是否已保存。后续解析服务
 6. 等人工审核几天样本后，再决定接入大模型。
 
 第一版目标不是“解析所有消息”，而是把“能安全解析”和“必须人工判断”分开。
+
+## 当前状态与恢复方法
+
+当前代码已暂时禁用大模型相关能力，运行时只保留规则解析链路。禁用范围包括：
+
+- 设置页中的模型配置与提示词配置入口
+- `/api/llm-config`、`/api/llm-config/test`、`/api/signal-prompts` 接口
+- LLM 配置存储、提示词存储、连通性测试客户端
+- 启动阶段对 LLM 相关存储的初始化
+
+如需恢复，建议按下面顺序执行，避免出现前端可见但后端不可用的状态：
+
+1. 恢复代码文件：`app/persistence/llm_store.py`、`app/persistence/prompt_store.py`、`app/services/llm_client.py`、`static/js/settings-llm.js`、`static/js/settings-prompts.js`、`static/css/settings-llm.css`。
+2. 恢复启动注入：在 `app/main.py` 中重新引入 `LlmConfigStore` 和 `PromptProfileStore`，启动时执行 `initialize()`，并挂到 `app.state.llm_store` 与 `app.state.prompt_store`。
+3. 恢复 API：在 `app/routes/api.py` 中移除统一禁用逻辑，重新启用 `llm-config` 与 `signal-prompts` 的读写和测试接口。
+4. 恢复设置页：在 `templates/settings.html` 中重新挂载模型配置、提示词表单，以及对应脚本和样式资源。
+5. 恢复数据库：确认 `llm_provider_configs` 与 `signal_prompt_profiles` 两张表存在；如果后续被清理，需要先重新建表再恢复配置。
+6. 恢复验证：至少验证配置保存、连接测试、提示词新增编辑删除、服务重启后配置仍可读取，这四条链路都正常后再打开真实 LLM 解析调用。
+
+恢复时建议增加显式开关，例如 `SIGNAL_LLM_ENABLED`，并按下面的发布顺序逐步打开：
+
+1. 先恢复存储和接口，但默认关闭开关。
+2. 再恢复设置页入口，确认配置链路可用。
+3. 最后接回真实解析调用，只让规则低置信度结果进入 LLM 补充解析。
+
+不建议一步恢复到“页面可配、接口可用、自动交易可调用”的一体化状态。更稳妥的方式是先恢复配置能力，再恢复解析能力，最后再评估是否恢复到自动化交易链路。
